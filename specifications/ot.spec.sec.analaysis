@@ -1,0 +1,68 @@
+Attacking the primes:
+
+	================================
+	q  = randomprimes
+	n  = primes * q
+
+	coset  = λ(primes)
+	qspace = λ(n)/coset
+	b      = rand(coset)
+
+	r0 = (2^(coset*rand(qspace))) 	Mod (n)				;note that this is (2^0) Mod primes
+	r1 = (2^(coset*rand(qspace))) 	Mod (n)				;note that this is (2^0) Mod primes
+	r2 = (2^(coset*rand(qspace))) 	Mod (n)				;note that this is (2^0) Mod primes
+
+	b0 = (r0)(2^b) 			Mod (n)				;r0 does not change anything when going Mod primes
+	b1 = (r1)(2^b)[1,-2] 		Mod (n)				;r1 does not change anything when going Mod primes
+	b2 = (r2)(2^b)[1,-2]	 	Mod (n)				;r2 does not change anything when going Mod primes
+
+	response = ( (b0)(sum) + (b1)(d1) + (b2)(d2) ) Mod (n)		;note this is unchanged from original sample (other than modulus)
+	decode   = ( (response)(2^-b) )                Mod (primes)	;note this is unchanged from original sample
+	================================
+
+	Selection can be determined by the following matchings:
+
+		b0%smallprime == b1%smallprime
+		b0%smallprime == b2%smallprime
+		b1%smallprime == b2%smallprime
+
+	One approach to correct for this is to render (n) a composite of many undisclosed primes 
+		(e.g. 256-bits each up to a 8k~ bit modulus). This becomes a multi-prime RSA style of system
+		in this form but comes with the speed drawbacks of large multiplies. It also comes with
+		the impact of extra bandwidth wasteage in practical application. 
+
+	Have to watch for the possibility of small prime extraction capability when using the elliptic curve
+		method. Generally, a 8192-bit composite number should use no more than 5 primes to prevent
+		recovery in an ECM attack. Modulus hiding would be essential in this case. 
+
+Other RSA considerations:
+
+	Most attacks on RSA that would apply here are ones in which the modulus (n) is factored. 
+		e.g. Low public/private exponent attacks are not applicable. 
+
+Finding (n):
+
+	B0 = ((b0)(-n)^-1)			Mod pow2
+	F0 = floor( 0.(b0/n) * pow2sig )	;truncated binary representation of traditional divide
+
+	These are the same thing from a traditional math standpoint. 
+
+	The key difference is the first is a moduluar division of (n) while the second is a rational division of (n). 
+
+	It is worth noting that in the case of F0 the number of decimal places can be equivalent to (n) and the
+		overwhelming majority are trimmed off. 
+
+	Possible attack: Find a (n) such that floor((0.F0/pow2sig)(n)) = ((-B0)(n)) Mod pow2
+
+	Note: If the ECM attack would end the security of the system otherwise, then (n)-hiding becomes essential.
+
+	Due to the reduced resolution of encoded data we can mask out the lower (kbit) portion of (F0) as the
+		fractional carries for it can never reach the whole number carry space. This gives us a form
+		where F0 is shifted down by about log2(pow2sig)-log2(n) bits before multiplications. This is a 
+		downshift of about (sigbits) which is less than the (kbits). Roughly speaking:
+
+			0.F0 / 2^(pow2sigbits-nbits)
+
+		With masked out bits of (kbits) the masking complexity is reduced to (kbits-(pow2sigbits-nbits))
+			or: (kbits-sigbits)
+
