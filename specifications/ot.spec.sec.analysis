@@ -1,0 +1,232 @@
+Cryptosystem is detailed below the cryptanalysis. 
+
+Cryptanalysis:
+
+	Known limitations of the cryptosystem:
+
+		If (n) is known:
+
+			* The only way to extract any part of λ(n) is by factoring (n) itself, which may be done with ECM. 
+
+			If (b0,b1,...,bn) values are known:
+
+				* (primes) can be acquired by taking the GCD of random powers of form: 	((b0/b1*[1,-2])^r)%n-1
+
+		Else (n) is not known:
+
+			If (b0,b1,...,bn)  values are known:
+
+				* (r.) values prevent trivial recovery of the selection bias by matching values
+
+				* (b0,b1,...,bn) values should be coprime to ensure no division reductions are possible
+
+				* (primes) can be acquired by taking the GCD of: [-2,1]*b0-b1, [-2,1]*b0-b2
+
+			Else (b0,b1,...,bn)  values are not known:
+
+				If (B0,B1,...,Bn) values are known:
+
+					* (2^b) prevents rotating the (B.) values in (pow2) until their distance from a 
+						constant in the reduced field (e.g. 1,-2) contains shared factors.
+
+					If (F0,F1,...,Fn) are known:
+
+						* Privacy depends on the inability to solve: ((F0)(n)) // pow2 == ((-B0)(n)) Mod pow2 
+
+							The above is secured by variances, see "Conjectures of difficulty" - Variance section.
+		
+							The above is further secured by F0 having its lower bits masked out in deployment.
+
+					If examining (B0,B1,...,Bn) values in isolation:
+
+						* Weak ECDSA signature conjecture, see "Conjectures of difficulty" - Weak ECDSA section.
+
+					If brute-forcing all possibilities of (n) for all valid combinations: 
+
+						----------------------------------------------
+						A = [-2,1]*(B0*n)%pow2 - [-2,1]*(B1*n)%pow2
+						B = [-2,1]*(B0*n)%pow2 - [-2,1]*(B2*n)%pow2
+
+						GCD( A, B ) >= (minimum_size_of_small_primes)
+
+						For some unknown (n) where n%GCD( A, B )=0
+						----------------------------------------------
+
+						If a valid size of (minimum_size_of_small_primes) exists an equal count of times for every valid select combination:
+
+							* Conjecture: This provides perfect selection secrecy, even in the quantum context. 
+
+						Else if the above GCD()>=(minimum_size_of_small_prime_product):
+
+							Search problem may be >= O( DLOG ) ;DLOG = discrete log difficulty
+
+							* Conjecture of difficulty: Requires recursive modular checks which may put 
+											it on par with the n%GCD()=0 checks below. 
+
+							If the above n%GCD()=0 relation is >= O( DLOG ):
+
+								The the entire system must be greater or equal to the discrete log in difficulty.
+
+								* Conjecture n%GCD(A,B)=0 > O( DLOG ): 
+			
+									[ Relocated due to size. See "Conjectures of difficulty" - GCD section. ]
+
+Basic system form:
+
+	================================
+	q  = randomprimes
+	n  = primes * q
+
+	coset  = λ(primes)
+	qspace = λ(n)/coset
+	b      = rand(λ(n))
+
+	r0 = (2^(coset*rand(qspace))) = primes*rand(n/primes)+1 Mod (n)		;note that this is (2^0) Mod primes
+	r1 = (2^(coset*rand(qspace))) = primes*rand(n/primes)+1 Mod (n)		;note that this is (2^0) Mod primes
+	r2 = (2^(coset*rand(qspace))) = primes*rand(n/primes)+1 Mod (n)		;note that this is (2^0) Mod primes
+
+	b0 = (r0)(2^b) 			Mod (n)					;r0 does not change anything when going Mod primes
+	b1 = (r1)(2^b)[1,-2] 		Mod (n)					;r1 does not change anything when going Mod primes
+	b2 = (r2)(2^b)[1,-2]	 	Mod (n)					;r2 does not change anything when going Mod primes
+
+	response = ( (b0)(sum) + (b1)(d1) + (b2)(d2) ) Mod (n)			;note this is unchanged from original sample (other than modulus)
+	decode   = ( (response)(2^-b)(3^-1) )          Mod (primes)		;note this is unchanged from original sample
+	================================
+
+Advancement with (n) stripped and problem moved to pow2 field:
+
+        ======================================================================
+        pow2    = 2^(enough_space_for_main_message)
+        pow2sig = 2^(enough_space_for_main_message + signatures)
+
+	(B0)(-n) Mod pow2 = (b0)
+	(B1)(-n) Mod pow2 = (b1)
+	(B2)(-n) Mod pow2 = (b2)
+
+	F0 = floor( 0.(b0/n) * pow2sig ) & MASKH	;truncated binary representation of traditional divide
+	F1 = floor( 0.(b1/n) * pow2sig ) & MASKH	;truncated binary representation of traditional divide
+	F2 = floor( 0.(b2/n) * pow2sig ) & MASKH	;truncated binary representation of traditional divide
+        ======================================================================
+
+Conjectures of difficulty:
+
+	GCD intersection conjecture:
+
+		Problem is to find "n":
+
+			----------------
+
+			A = [-2,1]*(B0*n)%pow2 - [-2,1]*(B1*n)%pow2
+			B = [-2,1]*(B0*n)%pow2 - [-2,1]*(B2*n)%pow2
+
+			n%GCD( A, B )	 =	0
+			  GCD( A, B )	>=	minimum_small_primes
+
+			----------------
+
+		The GCD() must pass both above conditions to be valid.
+
+		Argument: Hypothetical (n) is not stationary in practice, and this conjecture hinges upon the idea that 
+				a moving (n) renders this problem even more difficult than the stationary case, for 
+				which there is no current proof provided. Further, the GCD in practice would not be 
+				linear. This is thought to make the problem more difficult as well.
+
+		If GCD had linear growth/steps and (n) was stationary, the problem would likely be as hard as the DLOG. 
+
+		Proof of difficulty of linear growth steps of denominator with a stationary numerator for the DLOG:
+
+		Let:
+			C   = list of factors needed to describe any discrete log combination
+			E   = random [0,1] list selecting from C
+			p   = discrete log field
+			b0F = select_factors(C,E)
+			b0  = b0F%p
+			x   = (b0F-b0)/p
+
+		Given C, p, b0... find (x) such that:
+
+			C % (b0+p*x) = 0
+
+		A general solution to the above would allow index calculus to solve the DLOG.
+
+	Variance conjecture:
+
+		Consider the following system:
+
+			(2^e) Mod p = b0
+
+		In the above system, (2^e)//p is unknown and is thought to be difficult to be 
+			retrieved on its own with only knowledge of (b0) and (p). 
+
+		If (2^e)//p could be retrieved from (b0) and (p), the following would be possible:
+
+			( b0 + (2^e)//p ) Mod (p^2) = (2^e) Mod (p^2)
+
+			This would allow polynomial time retrieval of (e) using lifts:
+
+				λ = p-1
+				Q = (((2^λ)-1) Mod (p^2))/p
+				L = ((((2^e)^λ)-1) Mod (p^2))/p		
+				e = (L/Q) Mod p
+
+		Note that in the above, (e) has a linear growth of (Q) in the lift. If a separate known linear growth existed 
+		for (2^e)//p, this would create  an intersection between the two linear values and solve in polynomial time. 
+
+		Therefore, one of the things that secures the DLOG is the variance of (2^e)//p.
+
+		If the variance were small enough to work around or brute force, the DLOG could be solved.
+
+		The conjecture is therefore:
+
+			If the variance provided by a 256-bit DLOG is sufficient to prevent linear intersection, 
+				then the variance provided by a 8000+ bit field for oblivious transfer may also be. 
+
+	Weak ECDSA conjecture:
+
+		---------------------------
+		B0 = ((b0)(-n)^-1) Mod pow2
+		B1 = ((b1)(-n)^-1) Mod pow2
+		B2 = ((b2)(-n)^-1) Mod pow2
+		---------------------------
+
+		Because (B0,B1,...,Bn) would decode to random/different (b0,b1,b2)
+			values for every selection of (-n)^(-1) this at face would
+			seem to generate similar difficulty as solving for (k) in 
+			the ECDSA signature system. 
+
+			ECDSA signature scheme for reference:
+
+				----------------
+				s = (k^-1)(z+rd)
+				----------------
+
+				In the above, (d) is a private key, (k) is a random number, 
+					(z) is a a known message hash, and (r,s) is the signature. 
+
+				Can be rewritten as:
+				------------
+				k = (z+rd)/s
+				------------
+
+				Notice similary to generation of (B.) values:
+				-----
+				B. = ((b.)(-n)^-1) Mod pow2
+				-----
+
+				Rewritten:
+				-----
+				(b.) = (B.)(-n) Mod pow2
+				-----
+
+				Specifically: (-n) works like the stationary private 
+					key (d) and (b.) values work like the random
+					values (k). 
+
+		One key difference from ECDSA is that the (b.) values above are not 
+			uniformly random as (k) would be in the ECDSA. On the other
+			hand the number field is also much larger than in the ECDSA 
+			instance (~40x the size). At worst this should be on par with 
+			a weak from of ECDSA,  at best it should be re-hardened by 
+			increased field size. This seems to loop us back to GCD 
+			difficulty.
+

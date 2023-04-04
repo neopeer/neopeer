@@ -1,0 +1,17 @@
+License: MIT for everything in this repository, with the only exclusions being pre-made packaging related binary files in "./deployment" and copyrighted .pdf files in "./specifications/whitepapers". We assert "Fair Use" for all files in all (sub)directories of "./webtemplate/" not authored by us.
+
+Caution:
+This repository is still in development. 
+Use at your own risk. 
+
+Installation on Debian:
+apt-get update && apt-get install aptitude
+aptitude install make, gcc, g++, gdb, libgmp-dev, codelite
+;then be sure to download the repository using git
+
+Execution:
+Use codelite to open the workspace in /code/projects/linux/codelite/
+Select g++ at compiler wizard, prefer tabs for indentation.
+Compile, build, run.
+
+

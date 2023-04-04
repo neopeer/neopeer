@@ -1,0 +1,41 @@
+NeoPeer consists of these basic components:
+
+	Accumulators				(key detection)
+	Meta indexing and grouping
+	Immutable encoding 			(cements meta grouping)
+	Oblivious transfer 			(privacy of requests)
+	Asynchronous accumulators 		(comments)
+
+Deployment:
+
+	Once keys are established and meta indexing/grouping is complete the network
+	may be deployed immediately. The original seeding node(s) can perform the 
+	immutable encoding on-the-fly to facilitate the oblivious transfer requests.
+
+Immutable encoding waypoint chains:
+
+	this.waypoint.encrypted = publishkey.asymmetric_encrypt( { this.contentkeys, this.contenthash, this.waypoint.id }, hash(prev.contenthash,prev.contentkeys) )
+
+	The decode key is: hash(prev.contenthash,prev.contentkeys)
+
+	The decode key may always be transmitted with the encrypted message to bootstrap users who are not currently streaming.
+
+	If a previous waypoint is not ready on the network yet, then this may be transmitted at the tail instead:
+
+		this.waypoint.rawsigned = publishkey.sign( { this.contentkeys, this.contenthash, this.waypoint.id } )
+
+	These are transmitted at the tail of a stream block (at the waypoint) to allow decoding/checking of that block. 
+
+	We deliberately put the decode key at the tail of the transmission to defensively code to prevent an
+		implementation error of decoding the blocks before the blocks are verified. 
+
+Keys:
+
+	If keys themselves are maintained as their own directory tree they can be treated
+	just like any other meta information with the exception that they should
+	not be replaceable. This is in contrast to something like video content
+	which may be replaceable as part of natural network upgrades (e.g. improved
+	compression). 
+
+	
+

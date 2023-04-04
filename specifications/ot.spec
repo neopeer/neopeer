@@ -1,4 +1,4 @@
-Oblivious transfer using projective, double-blinded, partially masked carry counting with undisclosed composite modulus. 
+Knapsack Projective Oblivious Transfer
 
 Notation: 
 
@@ -77,16 +77,12 @@ Conceptual model:
 
 	Specific idea:
 
-		Normally determining cosets in small moduli is trivial ...IF... you know the modulus ...AND... its factors.
-
-		Even when the moduli is known, it is difficult to find interior cosets on large composite moduli with large
-			interior factors where you do not know any of the factors of (n) - see multiprime RSA.
+		Normally determining cosets in small moduli is trivial if you know the modulus and its factors.
 
 		By using composite moduli and also stripping out knowledge of the modulus, we have potentially strengthened 
-			coset hiding (e.g. against ECM attacks) which helps with oblivious transfer protocols.
-
-		The idea is to create random spins about an unspecified coset in an unspecified modulus, where the offsets from
-			the coset indicate the content math to be performed. 
+			coset hiding which helps with oblivious transfer protocols. The idea is to create random spins about 
+			an unspecified coset in an unspecified modulus, where the offsets from the coset indicate the content 
+			math to be performed. 
 
 		Normally (when modulus is known), completing a request works out to simple multiplies and additions. e.g.
 
@@ -109,7 +105,7 @@ Conceptual model:
 
 			coset  = λ(primes)
 			qspace = λ(n)/coset
-			b      = rand(coset)
+			b      = rand(λ(n))
 
 			r0 = (2^(coset*rand(qspace))) 	Mod (n)				;note that this is (2^0) Mod primes
 			r1 = (2^(coset*rand(qspace))) 	Mod (n)				;note that this is (2^0) Mod primes
@@ -125,14 +121,14 @@ Conceptual model:
 
 		This, in essense, provides a double-blinding. One common blinding (b) and then an individual blinding (r...) for each factor. 
 
-			Security note: If the primes of (n) can be known this is not secure. (see security document)
+			SECURITY: The above is prone to several classes of attacks on its own (see security document)
 
 		To reinforce security, we strip out knowledge of (n), adding the burden of calculating only in carry space.
 
 		To facilitate proper carry counting the values < n are converted to fixed point decimal (b0/n,b1/n,b2/n) with 
 			enough resolution such that multiplication/addition operations can offset the carry properly. 
 
-		After decoding, the peer should always check the  content to guard against trojan infection if the oblivious transfer 
+		After decoding, the peer should always check the content to guard against trojan infection if the oblivious transfer 
 			protocol/implementation is ever compromised or broken.
 
         Proxy verification/signatures:
@@ -221,9 +217,9 @@ Conceptual model:
 	
 		In the above form, privacy depends on the inability to solve: ((F0)(n)) // pow2 == ((-B0)(n)) Mod pow2  (see security analysis)
 
-		Privacy may be tightened by a subtle change where we recognize that encoded data may only be of bit size (nbits-kbits)
+		Privacy is tightened by a subtle change where we recognize that encoded data may only be of bit size (nbits-kbits)
 
-		With this we are able to safely truncate (kbits) worth of precision off of the fractional component. 
+		With this we are able to safely truncate (kbits) worth of precision off of the (F.) values. 
 
 
 Implementation:
@@ -259,7 +255,7 @@ Implementation:
 		r1 = (2^(coset*rand(qspace))) 		Mod n
 		r2 = (2^(coset*rand(qspace))) 		Mod n
 
-		b  = rand(coset)
+		b  = rand(λ(n))
 		b0 = ((r0)(2^b))        		Mod n					;[] denote optional selection from list
 		b1 = ((r1)(2^b)[1,-2])  		Mod n					;[] denote optional selection from list
 		b2 = ((r2)(2^b)[1,-2])  		Mod n					;[] denote optional selection from list
@@ -338,20 +334,6 @@ Implementation:
 				is for the purposes of preventing a single attacker from too easily harvesting
 				the IPs of all participants in the network. 
 
-Optimizations:
-
-	The pow2 fields are essentially binary fields performing standard binary arithmetic. No actual modulus
-		work here is necessary beyond trimming overflow bits in the last processor register. 
-
-	When irregular modulus work is performed it is done only by the requestor. Since the requestor knows
-		the individual primes of (n) they are able to use the Chinese Remainder Theorem (CRT) function
-		to reconstruct the larger number much more efficiently by encoding/decoding each small prime 
-		individually.
-
-	The proxy checking math is ideal performance wise as it only needs to multiply the passing data by small 
-		"compressed" polynomial coefficients, preventing heavy multiplication burden on proxies. Their
-		only heavy check is final verification of many blocks, but even here the modulus is pow2 aligned. 
-
 Packing and data sizes:
 
 	If 128 bit smallest prime in composite modulus requires, this is 128 bits of waste for OT before signature buffers.
@@ -373,3 +355,47 @@ Packing and data sizes:
 		at the beginning of each video stream (where the number of blocks provided allow at least 12 seconds of play back time)
 	
 
+
+Optimizations:
+
+	The pow2 fields are essentially binary fields performing standard binary arithmetic. No actual modulus
+		work here is necessary beyond trimming overflow bits in the last processor register. 
+
+	When irregular modulus work is performed it is done only by the requestor. Since the requestor knows
+		the individual primes of (n) they are able to use the Chinese Remainder Theorem (CRT) function
+		to reconstruct the larger number much more efficiently by encoding/decoding each small prime 
+		individually.
+
+	The proxy checking math is ideal performance wise as it only needs to multiply the passing data by small 
+		"compressed" polynomial coefficients, preventing heavy multiplication burden on proxies. Their
+		only heavy check is final verification of many blocks, but even here the modulus is pow2 aligned. 
+
+
+Granular optimizations:
+
+	Values are constructed as a stream the following way:
+
+		Bp =  ( B0*SUM[block] + B1*D1[block] + B2*D2[block] )			& p2mask
+		Bf = (( F0*SUM[block] + F1*D1[block] + F2*D2[block] ) >> pow2bits)	& p2sigmask
+		B  =  ( sigpad(Bp) + Bf ) 						& p2sigmask
+
+	If the (B0, F0) values are converted to pre-shifted number vectors, this becomes a streaming SIMD problem. 
+
+	Process:
+
+		- Preprocess ( B0, F0 ) vector values for life of communication.
+
+		- For each vector position:
+			- For each index position below current vector position:
+				- Preload ( B0, F0 ) vector values for current vector position 
+				- For each block being processed:
+					- Load SUM[block] values for (index) vector position
+					- Use bits of that block to add the preprocessed ( B0, F0 ) 
+						vectors to result at storage location
+
+		Note: Preloading will probably be determined by compiler depending on loop mechanics.
+
+		The above allows us to use variable vector lengths. The outer pow2 field prevents
+			the need for adding lower indices whenever the index is moved up. Ideally
+			this should be keyed to the number of vector elements the processor can
+			handle concurrently. 
