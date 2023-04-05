@@ -31,12 +31,16 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 // math memory management template
 //
 
+#ifndef BIGMATHBANKSIZE
+#define BIGMATHBANKSIZE 100
+#endif
+
 #ifndef BIGMATHSTRBUFFERMAX
 #define BIGMATHSTRBUFFERMAX 256
 #endif
 
-#ifndef BIGMATHBANKSIZE
-#define BIGMATHBANKSIZE 100
+#ifndef BIGMATHSTRQUEUEMAX
+#define BIGMATHSTRQUEUEMAX 32
 #endif
 
 template <typename T, int S, typename CBT>
@@ -55,10 +59,19 @@ struct mathbankaccess_t {
 	struct bank_t;
 
 	struct bankentry_t {
-		linkitem<bankentry_t>	m_item;
-		bank_t 					*m_bank;
-		T	 					*m_v;
-		char					m_strbuffer[BIGMATHSTRBUFFERMAX];
+
+		static thread_local char	g_strbuffer[BIGMATHSTRBUFFERMAX*BIGMATHSTRQUEUEMAX];	//thread specific to avoid mutex locks
+		static thread_local int		g_strbufferpos;											//thread specific to avoid mutex locks
+
+		linkitem<bankentry_t>		m_item;
+		bank_t 						*m_bank;
+		T	 						*m_v;
+
+		inline char *getstringmem() {
+			if(g_strbufferpos>BIGMATHSTRBUFFERMAX*(BIGMATHSTRQUEUEMAX-1)) g_strbufferpos=0;
+			return(&g_strbuffer[g_strbufferpos+=BIGMATHSTRBUFFERMAX]);
+		}
+
 	};
 
 	struct bank_t {
@@ -70,7 +83,7 @@ struct mathbankaccess_t {
 		const unsigned int c_alloc_limbs = (S/mp_bits_per_limb+(S%mp_bits_per_limb==0?0:1)+1);
 		const unsigned int c_alloc_bits  = c_alloc_limbs*mp_bits_per_limb;
 
-		static thread_local linkbase<bank_t> g_base, g_freebase;	//thread specific to avoid need for mutex locks
+		static thread_local linkbase<bank_t> g_base, g_freebase;	//thread specific to avoid mutex locks
 							linkitem<bank_t> m_item, m_freeitem;
 							linkbase<bankentry_t> m_freenodebase;
 
@@ -153,6 +166,12 @@ struct mathbankaccess_t {
 	}
 
 };
+
+template <typename T, int S, typename CBT>
+thread_local char mathbankaccess_t<T,S,CBT>::bankentry_t::g_strbuffer[BIGMATHSTRBUFFERMAX*BIGMATHSTRQUEUEMAX];
+
+template <typename T, int S, typename CBT>
+thread_local int mathbankaccess_t<T,S,CBT>::bankentry_t::g_strbufferpos = 0;
 
 template <typename T, int S, typename CBT>
 thread_local linkbase<typename mathbankaccess_t<T,S,CBT>::bank_t> mathbankaccess_t<T,S,CBT>::bank_t::g_base;
@@ -257,8 +276,9 @@ struct biguint_t {
 
 	operator const char*() const {
 		SAFE()
-		gmp_snprintf( b.m_e->m_strbuffer, sizeof(b.m_e->m_strbuffer), "%Zd", b.m_v[0] ); 
-		return (b.m_e->m_strbuffer);
+		char *r = b.m_e->getstringmem();
+		gmp_snprintf( r, BIGMATHSTRBUFFERMAX, "%Zd", b.m_v[0] ); 
+		return r;
 	}
 
 	operator const double() 		const 					{ SAFE() return(mpz_get_d(b.m_v[0]));  }
@@ -405,8 +425,9 @@ struct bigfrac_t {
 
 	operator const char*() const {
 		SAFE()
-		gmp_snprintf( b.m_e->m_strbuffer, sizeof(b.m_e->m_strbuffer), "%Qd", b.m_v[0] ); 
-		return (b.m_e->m_strbuffer);
+		char *r = b.m_e->getstringmem();
+		gmp_snprintf( r, BIGMATHSTRBUFFERMAX, "%Qd", b.m_v[0] ); 
+		return r;
 	}
 
 	operator const double() const 								{ SAFE() return(mpq_get_d(b.m_v[0]));  }
