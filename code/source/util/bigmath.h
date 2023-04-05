@@ -31,6 +31,14 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 // math memory management template
 //
 
+#ifndef BIGMATHSTRBUFFERMAX
+#define BIGMATHSTRBUFFERMAX 256
+#endif
+
+#ifndef BIGMATHBANKSIZE
+#define BIGMATHBANKSIZE 100
+#endif
+
 template <typename T, int S, typename CBT>
 struct mathbankaccess_t {
 
@@ -50,14 +58,14 @@ struct mathbankaccess_t {
 		linkitem<bankentry_t>	m_item;
 		bank_t 					*m_bank;
 		T	 					*m_v;
-		char					m_strbuffer[256];
+		char					m_strbuffer[BIGMATHSTRBUFFERMAX];
 	};
 
 	struct bank_t {
 
 		SAFEHEAD(bank_t)
 
-		static const int BANKSIZE = 100;
+		static const int BANKSIZE = BIGMATHBANKSIZE;
 
 		const unsigned int c_alloc_limbs = (S/mp_bits_per_limb+(S%mp_bits_per_limb==0?0:1)+1);
 		const unsigned int c_alloc_bits  = c_alloc_limbs*mp_bits_per_limb;

@@ -8,5 +8,6 @@ Immutable encoding spec:
 
 	Negatives: 
 
-		(Ti) could be upshifted to prevent negatives where needed
+		(Ti) can have the data encoding range added to it to prevent negatives
+
 
