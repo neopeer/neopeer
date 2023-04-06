@@ -22,6 +22,10 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #ifndef LINKEDLIST_H
 #define LINKEDLIST_H
 
+#if !defined(NDEBUG) || !defined(DISABLEMEMSAFETY)
+#include <stdexcept>
+#endif
+
 //list-item class
 template <typename T>
 struct linkitem
@@ -29,6 +33,14 @@ struct linkitem
 
 	T *m_obj;
 	linkitem *m_next, *m_prev;
+
+#if !defined(NDEBUG) || !defined(DISABLEMEMSAFETY)
+	linkitem( const linkitem &rh ) {
+		char buffer[256];
+		sprintf( buffer, "Potentially unsafe copy of structure. Halting." );
+		throw std::runtime_error(buffer);
+	}
+#endif
 
 	inline linkitem() {
 		m_obj  = 0;
