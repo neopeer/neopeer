@@ -51,13 +51,14 @@ int appmain(int argc, char **argv)
 
 #ifndef NDEBUG
 #include <iostream>
+extern "C" int __lsan_is_turned_off() { return 1; }
 #endif
 int main(int argc, char **argv) {
 	int ret = appmain(argc,argv);
 	__memsafe_pk::memleakcheck();
 	#ifndef NDEBUG
 		int ps;
-		printf("\nPausing.\n");
+		printf("\nPress key and push enter to close.\n");
 		std::cin >> ps;
 	#endif
 	return(ret);

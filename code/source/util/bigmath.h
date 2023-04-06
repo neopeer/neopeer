@@ -411,6 +411,7 @@ struct bigfrac_t {
 		bigint_t<S> r;
 		__mpz_struct *numref = mpq_numref(b.m_v[0]);
 		__mpz_struct *denref = mpq_denref(b.m_v[0]);
+		mpz_mul_2exp( r.b.m_v[0], numref, 1 );		 				  		//double numerator
 		mpz_mul_2exp( r.b.m_vtmp[0], numref, 1 );		 				  	//double numerator
 		mpz_tdiv_q( r.b.m_v[0], r.b.m_vtmp[0], denref ); 				  	//divide - truncating toward zero
 		r += ( 2 * mpz_tstbit( r.b.m_v[0], 0 ) * mpz_sgn( r.b.m_v[0] ) );   //rounding logic

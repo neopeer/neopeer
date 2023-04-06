@@ -40,9 +40,9 @@ struct __memsafe_pk {
 
 struct __memsafe_pk {
 
-	static linkbase<__memsafe_pk> 	g_base;
-	       linkitem<__memsafe_pk> 	m_item;
-		   const std::type_info  	*m_ti;
+	static thread_local linkbase<__memsafe_pk> 	g_base;
+						linkitem<__memsafe_pk> 	m_item;
+						const std::type_info  	*m_ti;
 
 	inline __memsafe_pk( const std::type_info  *ti ) : m_ti(ti)  	{ m_item.link(this); g_base.add(&m_item); }
 	inline ~__memsafe_pk() 											{ g_base.remove(&m_item); }
@@ -60,7 +60,7 @@ struct __memsafe_pk {
 	}
 
 };
-linkbase<__memsafe_pk> __memsafe_pk::g_base;
+thread_local linkbase<__memsafe_pk> __memsafe_pk::g_base;
 
 
 template <typename nm>
