@@ -1,0 +1,126 @@
+1) changed print statements to include brackets
+2) xrange > range
+3) changed import from import subdirectory
+        change: from imports import numbthy
+            to; from . import numbthy
+
+
+This was not enough.
+Getting overflow errors from large float values
+
+
+        $ python3 ot_py3.py 
+        Generating secure primes. Please wait.
+        Generating blocks. Please wait.
+        n-size in bits: 8234.457544444704
+        q-space in bits: 114.52810550352847
+        coset size in bits: 7749.45859271736
+
+        Sample 1 - 1000 blocks... initializing request...
+        Traceback (most recent call last):
+        File "ot_py3.py", line 90, in <module>
+            blind	 	= powmodCRT(2,b,primelist)	#accelerated using CRT (using primelist over primes)
+        File "/home//Desktop/imports/modmath.py", line 76, in powmodCRT
+            return CRT(r,primes)
+        File "/home//Desktop/imports/modmath.py", line 50, in CRT
+            pp=prod/mods[i]
+        OverflowError: integer division result too large for a float
+
+
+I tried to divide by integer
+    pp=prod//mods[i]
+
+then it can't invert the number in the next line
+
+        $ python3 ot_py3.py 
+        Generating secure primes. Please wait.
+        Generating blocks. Please wait.
+        n-size in bits: 8229.204966805095
+        q-space in bits: 110.98364152143648
+        coset size in bits: 7637.066564985991
+
+        Sample 1 - 1000 blocks... initializing request...
+        ERROR: 16610001782047170006376548404480238807  is not invertible
+        ERROR: inversion routine failed for CRT.
+        ERROR: 94056573204751948999156334971941491716  is not invertible
+
+
+in python2, the inverse function gets newr = 1
+
+        while newr != 0:
+            quotient = r/newr
+            t2=newt
+            r2=newr
+            newt=t-quotient*newt
+            newr=r-quotient*newr
+            t=t2
+            r=r2
+
+
+I changed 
+    quotent = r/newr
+to 
+    quotent = r//newr
+
+
+progress...
+
+        $ python3 ot_py3.py
+        Generating secure primes. Please wait.
+        Generating blocks. Please wait.
+        n-size in bits: 8245.872344697425
+        q-space in bits: 113.0696080063221
+        coset size in bits: 7708.77222845289
+
+        Sample 1 - 1000 blocks... initializing request...
+        Sample 1 - 1000 blocks... executing...
+        Sample 1 - 1000 blocks... completed in 0.07018319799681194 seconds
+
+        Sample 2 - 1000 blocks... initializing request...
+        Sample 2 - 1000 blocks... executing...
+        Sample 2 - 1000 blocks... completed in 0.13829182799963746 seconds
+
+        Sample 3 - 1000 blocks... initializing request and preparing signatures...
+        Sample 3 - 1000 blocks... executing...
+        Sample 3 - 1000 blocks... completed in 0.18454657499751193 seconds
+        Traceback (most recent call last):
+        File "ot_py3.py", line 455, in <module>
+            X      = [1]*vcount
+        TypeError: can't multiply sequence by non-int of type 'float'
+
+
+Changed line 453
+
+    vcount = polycount/2
+
+to, drum roll please...
+
+    vcount = polycount//2
+
+
+        $ python3 ot_py3.py
+        Generating secure primes. Please wait.
+        Generating blocks. Please wait.
+        n-size in bits: 8232.947188311482
+        q-space in bits: 116.89001524956991
+        coset size in bits: 7708.587697780188
+
+        Sample 1 - 1000 blocks... initializing request...
+        Sample 1 - 1000 blocks... executing...
+        Sample 1 - 1000 blocks... completed in 0.07299239100029808 seconds
+
+        Sample 2 - 1000 blocks... initializing request...
+        Sample 2 - 1000 blocks... executing...
+        Sample 2 - 1000 blocks... completed in 0.13874836299874005 seconds
+
+        Sample 3 - 1000 blocks... initializing request and preparing signatures...
+        Sample 3 - 1000 blocks... executing...
+        Sample 3 - 1000 blocks... completed in 0.1845974310017482 seconds
+        Sample 3 - 1000 verification... executing...
+        Sample 3 - 1000 verification... completed in 0.00906650099932449 seconds
+
+
+so potentially this has worked?
+
+
+
