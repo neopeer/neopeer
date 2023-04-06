@@ -4,7 +4,7 @@ Caution:
 This repository is still in development. 
 Use at your own risk. 
 
-Installation on Debian:
+Installation on Debian/Devuan:
 apt-get update && apt-get install aptitude
 aptitude install make gcc g++ gdb libgmp-dev codelite
 ;then be sure to download the repository using git
