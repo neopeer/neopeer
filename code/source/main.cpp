@@ -36,8 +36,9 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #ifdef TESTUNITS
 int appmain(int argc, char **argv)
 {
-	if(testunits())	printf("Unit tests successful.\n");
-	else			printf("Unit tests failed.\n");
+	testunits::start();	
+
+	printf("Unit tests successful.\n");
 
 	return(0);
 }
@@ -57,9 +58,8 @@ int main(int argc, char **argv) {
 	int ret = appmain(argc,argv);
 	__memsafe_pk::memleakcheck();
 	#ifndef NDEBUG
-		int ps;
-		printf("\nPress key and push enter to close.\n");
-		std::cin >> ps;
+		printf("Press enter to exit.\n");
+		getchar();
 	#endif
 	return(ret);
 }
