@@ -69,6 +69,14 @@ struct __memsafe_st {
 	__int64_t 		m_memsafeti = (__int64_t)(&typeid(nm));
 	__memsafe_pk 	m_pk = &typeid(nm);
 
+	inline __memsafe_st() {}
+
+	__memsafe_st( const __memsafe_st &rh ) {
+		char buffer[256];
+		sprintf( buffer, "Potentially unsafe copy of structure. Halting." );
+		throw std::runtime_error(buffer);
+	}
+
 	~__memsafe_st() 				{ m_memsafeti=0; }
 	void _memsafetycheck() const 	{ assert((m_memsafeti == (__int64_t)(&typeid(nm)))); }
 
