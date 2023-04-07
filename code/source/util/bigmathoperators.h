@@ -284,10 +284,10 @@ inline bigfrac_t<S> operator/( bigfrac_t<S> lhs, const bigfrac_t<S> &rhs ) 	{ lh
 //double rhs overloads
 
 template <int S>
-inline bool operator!=( const bigfrac_t<S> &lhs, const double &rhs )		 { return !lhs._eq(rhs);  }
+inline bool operator!=( const bigfrac_t<S> &lhs, const double &rhs )		{ return !lhs._eq(rhs);  }
 
 template <int S>
-inline bool operator==( const bigfrac_t<S> &lhs, const double &rhs )		 { return lhs._eq(rhs);  }
+inline bool operator==( const bigfrac_t<S> &lhs, const double &rhs )		{ return lhs._eq(rhs);  }
 
 template <int S>
 inline bool operator>( const bigfrac_t<S> &lhs, const double &rhs )		 	{ return lhs._gt(rhs);  }
@@ -302,16 +302,16 @@ template <int S>
 inline bool operator<=( const bigfrac_t<S> &lhs, const double &rhs )		{ return lhs._lte(rhs);  }
 
 template <int S>
-inline bigint_t<S> operator+( bigint_t<S> lhs, const double &rhs ) 			{ lhs+=rhs; return(lhs); }
+inline bigfrac_t<S> operator+( bigfrac_t<S> lhs, const double &rhs ) 		{ lhs+=rhs; return(lhs); }
 
 template <int S>
-inline bigint_t<S> operator-( bigint_t<S> lhs, const double &rhs ) 			{ lhs-=rhs; return(lhs); }
+inline bigfrac_t<S> operator-( bigfrac_t<S> lhs, const double &rhs ) 		{ lhs-=rhs; return(lhs); }
 
 template <int S>
-inline bigint_t<S> operator*( bigint_t<S> lhs, const double &rhs ) 			{ lhs*=rhs; return(lhs); }
+inline bigfrac_t<S> operator*( bigfrac_t<S> lhs, const double &rhs ) 		{ lhs*=rhs; return(lhs); }
 
 template <int S>
-inline bigint_t<S> operator/( bigint_t<S> lhs, const double &rhs ) 			{ lhs/=rhs; return(lhs); }
+inline bigfrac_t<S> operator/( bigfrac_t<S> lhs, const double &rhs ) 		{ lhs/=rhs; return(lhs); }
 
 
 //double lhs overloads

@@ -200,10 +200,10 @@ namespace testunits {
 		inline bool operator>=( const bigfrac_t<S> &lhs, const double &rhs )		{ return lhs._gte(rhs);  }
 		inline bool operator<( const bigfrac_t<S> &lhs, const double &rhs )		 	{ return lhs._lt(rhs);  }
 		inline bool operator<=( const bigfrac_t<S> &lhs, const double &rhs )		{ return lhs._lte(rhs);  }
-		inline bigint_t<S> operator+( bigint_t<S> lhs, const double &rhs ) 			{ lhs+=rhs; return(lhs); }
-		inline bigint_t<S> operator-( bigint_t<S> lhs, const double &rhs ) 			{ lhs-=rhs; return(lhs); }
-		inline bigint_t<S> operator*( bigint_t<S> lhs, const double &rhs ) 			{ lhs*=rhs; return(lhs); }
-		inline bigint_t<S> operator/( bigint_t<S> lhs, const double &rhs ) 			{ lhs/=rhs; return(lhs); }
+		inline bigfrac_t<S> operator+( bigfrac_t<S> lhs, const double &rhs ) 			{ lhs+=rhs; return(lhs); }
+		inline bigfrac_t<S> operator-( bigfrac_t<S> lhs, const double &rhs ) 			{ lhs-=rhs; return(lhs); }
+		inline bigfrac_t<S> operator*( bigfrac_t<S> lhs, const double &rhs ) 			{ lhs*=rhs; return(lhs); }
+		inline bigfrac_t<S> operator/( bigfrac_t<S> lhs, const double &rhs ) 			{ lhs/=rhs; return(lhs); }
 
 		//double lhs overloads
 		inline bool operator!=( const double &lhs, const bigfrac_t<S> &rhs ) 		{ return rhs._eq(lhs); }

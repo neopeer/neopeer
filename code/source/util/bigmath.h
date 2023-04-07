@@ -399,11 +399,11 @@ struct bigfrac_t {
 	inline bool _lt( const bigfrac_t<S> &rhs ) const 			{ SAFE() return(mpq_cmp( b.m_v[0], rhs.b.m_v[0] ) < 0);  }
 	inline bool _lte( const bigfrac_t<S> &rhs ) const 			{ SAFE() return(mpq_cmp( b.m_v[0], rhs.b.m_v[0] ) <= 0); }
 
-	inline bool _eq( const double &rhs ) const 					{ SAFE() return(mpq_get_d( b.m_v[0] ) == 0);  }
-	inline bool _gt( const double &rhs ) const 					{ SAFE() return(mpq_get_d( b.m_v[0] ) > 0);  }
-	inline bool _gte( const double &rhs ) const 				{ SAFE() return(mpq_get_d( b.m_v[0] ) >= 0); }
-	inline bool _lt( const double &rhs ) const 					{ SAFE() return(mpq_get_d( b.m_v[0] ) < 0);  }
-	inline bool _lte( const double &rhs ) const 				{ SAFE() return(mpq_get_d( b.m_v[0] ) <= 0); }
+	inline bool _eq( const double &rhs ) const 					{ SAFE() return(mpq_get_d( b.m_v[0] ) == rhs);  }
+	inline bool _gt( const double &rhs ) const 					{ SAFE() return(mpq_get_d( b.m_v[0] ) > rhs);  }
+	inline bool _gte( const double &rhs ) const 				{ SAFE() return(mpq_get_d( b.m_v[0] ) >= rhs); }
+	inline bool _lt( const double &rhs ) const 					{ SAFE() return(mpq_get_d( b.m_v[0] ) < rhs);  }
+	inline bool _lte( const double &rhs ) const 				{ SAFE() return(mpq_get_d( b.m_v[0] ) <= rhs); }
 
 	inline bigfrac_t<S> abs()									{ SAFE(); bigfrac_t<S> r; mpq_abs(r.b.m_v[0],b.m_v[0]); return(r); }
 
