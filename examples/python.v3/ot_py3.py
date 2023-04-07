@@ -236,6 +236,38 @@ class PolyClass:
 	def __init__(self,m,x):
 		self.modulus 	= m
 		self.xvalue 	= x
+		
+#block encode and decode class
+class BlockCoder:
+    def __init__(self, data, sindex, B0, B1, B2, F0, F1, F2, pow2bits, pow2sig, primes, unblind, p2mask, p2sigmask):
+        self.data = data
+        self.sindex = sindex
+        self.B0 = B0
+        self.B1 = B1
+        self.B2 = B2
+        self.F0 = F0
+        self.F1 = F1
+        self.F2 = F2
+        self.pow2bits = pow2bits
+        self.pow2sig = pow2sig
+        self.primes = primes
+        self.unblind = unblind
+        self.p2mask = p2mask
+        self.p2sigmask = p2sigmask
+        
+    def encode_block(self, block):
+        selection = self.data[block][self.sindex]
+        Bp = (self.B0 * SUM[block] + self.B1 * D1[block] + self.B2 * D2[block]) & self.p2mask
+        Bf = ((self.F0 * SUM[block] + self.F1 * D1[block] + self.F2 * D2[block]) >> self.pow2bits) & self.p2sigmask
+        B = (sigpad(Bp) + Bf) & self.p2sigmask
+        return B
+    
+    def decode_block(self, B, block):
+        decode = (sigunpad(B) * (pow2 - n)) & self.p2mask
+        decode = (decode * self.unblind) % self.primes
+        if decode != self.data[block][self.sindex]:
+            print("ERROR: Decode error. Stopping.")
+            sys.exit()
 
 def get_ranged_prime( hashint, roof ):
 	hashint=hashint%roof
@@ -414,36 +446,14 @@ if sanitycheck:
 
 print("Sample 3 -",blockcount,"blocks... executing...")
 
+block_coder = BlockCoder(DATA, sindex, B0, B1, B2, F0, F1, F2, pow2bits, pow2sig, primes, unblind, p2mask, p2sigmask)
+
 storedB = []
 sampleclock = timeit.default_timer()
-for block in range(0,blockcount):
-
-	#the data the user wants
-	selection = DATA[block][sindex]
-
-	#prover response
-	Bp =  ( B0*SUM[block] + B1*D1[block] + B2*D2[block] )			& p2mask
-	Bf = (( F0*SUM[block] + F1*D1[block] + F2*D2[block] ) >> pow2bits)	& p2sigmask
-	B  =  ( sigpad(Bp) + Bf ) 						& p2sigmask
-	storedB.append(B)
-
-	#prover response - above is faster form of the below
-	#Bp = ( (B0)sum +  (B1)d1 +  (B2)d2 ) 		Mod pow2 		;primary carries
-	#Bf = ( (F0)sum +  (F1)d1 +  (F2)d2 ) // pow2 	Mod pow2sig 		;fractional carries
-	#B  = ( sigpad(Bp) + Bf ) 			Mod pow2sig		;final regular carry, should not overflow (pow2sig)(2)
-
-	#requestor decode
-	decode = (sigunpad(B)*(pow2-n)) & p2mask
-	decode = (decode*unblind) % primes				#possibe CRT acceleration with vector operations
-
-	#requestor decode - above is faster form of the below
-	#B = sigunpad(B)(-n)			Mod pow2		;convert back to modular form
-	#B = ((B)(2^-b)(3^-1))			Mod primes		;(sum) + (d1)[1,-2] + (d2)[1,-2]
-
-	#validate
-	if decode!=selection:
-		print("ERROR: Decode error. Stopping.")
-		sys.exit()
+for block in range(blockcount):
+    B = block_coder.encode_block(block)
+    storedB.append(B)
+    block_coder.decode_block(B, block)
 
 print("Sample 3 -",blockcount,"blocks... completed in",(timeit.default_timer()-sampleclock),"seconds")
 
