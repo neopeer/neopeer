@@ -269,6 +269,49 @@ class BlockCoder:
 			print("ERROR: Decode error. Stopping.")
 			sys.exit()
 
+#massive class for all the polynomical verification steps at the end. Likely candidate for breaking up later...
+class PolynomialVerifier:
+	def __init__(self, polycount, blockcount, storedB, POLYS):
+		self.polycount = polycount
+		self.blockcount = blockcount
+		self.vcount = self.polycount // 2
+		self.vpolys = []
+		self.X = [1] * self.vcount
+		self.Bacc = [0] * self.vcount
+		self.storedB = storedB
+		self.POLYS = POLYS
+
+	def verify(self):
+		while len(self.vpolys) < self.vcount:
+			match = False
+			pindex = srand(self.polycount)
+			for pi in self.vpolys:
+				if pi == pindex:
+					match = True
+					break
+			if match == False:
+				self.vpolys.append(pindex)
+
+		for block in range(self.blockcount):
+			B = self.storedB[block]
+
+			for pindex in range(self.vcount):
+				P = self.POLYS[self.vpolys[pindex]]
+				self.X[pindex] = (self.X[pindex] * P.xvalue) % P.modulus
+				self.Bacc[pindex] = (self.Bacc[pindex] + B * self.X[pindex]) & p2sigmask
+
+		# check the final accumulator against the polys
+		for pindex in range(self.vcount):
+			P = self.POLYS[self.vpolys[pindex]]
+			BtestC = (B0 * P.SUMPOLY + B1 * P.D1POLY + B2 * P.D2POLY)
+			BtestF = ((F0 * P.SUMPOLY + F1 * P.D1POLY + F2 * P.D2POLY) >> pow2bits)
+			Btest = (BtestC + sigunpad(BtestF)) & p2mask
+			if Btest != sigunpad(self.Bacc[pindex]):
+				print(Btest)
+				print(sigunpad(self.Bacc[pindex]))
+				print("ERROR: Polynomial checking has failed. Stopping.")
+				sys.exit()
+
 def get_ranged_prime( hashint, roof ):
 	hashint=hashint%roof
 	while isprime(hashint)==False: hashint=(hashint+1)%roof
@@ -459,46 +502,8 @@ print("Sample 3 -",blockcount,"blocks... completed in",(timeit.default_timer()-s
 
 
 #>>> Verify blocks (proxy and possibly recipient)
-
-vcount = polycount//2
-vpolys = []
-X      = [1]*vcount
-Bacc   = [0]*vcount
-while len(vpolys)<vcount:
-	match=False
-	pindex=srand(polycount)
-	for pi in vpolys:
-		if pi==pindex: match=True; break;
-	if match==False: vpolys.append(pindex)
-
-print("Sample 3 -",blockcount,"verification... executing...")
-
-sampleclock = timeit.default_timer()
-
-#build accumulator
-for block in range(0,blockcount):
-
-	#prover response
-	B = storedB[block]
-
-	#iterate polys to build checking accumulator
-	for pindex in range(0,vcount):
-		P  = POLYS[vpolys[pindex]]
-		X[pindex] = (X[pindex]*P.xvalue)%P.modulus
-		Bacc[pindex] = ( Bacc[pindex] + B*X[pindex] ) & p2sigmask
-
-#check the final accumulator against the polys
-for pindex in range(0,vcount):
-	P  = POLYS[vpolys[pindex]]
-	BtestC =  ( B0*P.SUMPOLY + B1*P.D1POLY + B2*P.D2POLY ) 		
-	BtestF = (( F0*P.SUMPOLY + F1*P.D1POLY + F2*P.D2POLY ) >> pow2bits) 
-	Btest  = ( BtestC + sigunpad(BtestF) ) & p2mask
-	if Btest!=sigunpad(Bacc[pindex]):
-		print(Btest)
-		print(sigunpad(Bacc[pindex]))
-		print("ERROR: Polynomial checking has failed. Stopping.")
-		sys.exit()
-
+poly_verifier = PolynomialVerifier(polycount, blockcount, storedB,POLYS)
+poly_verifier.verify()
 print("Sample 3 -",blockcount,"verification... completed in",(timeit.default_timer()-sampleclock),"seconds")
 
 
