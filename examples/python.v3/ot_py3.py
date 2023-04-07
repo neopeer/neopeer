@@ -271,46 +271,52 @@ class BlockCoder:
 
 #massive class for all the polynomical verification steps at the end. Likely candidate for breaking up later...
 class PolynomialVerifier:
-	def __init__(self, polycount, blockcount, storedB, POLYS):
-		self.polycount = polycount
-		self.blockcount = blockcount
-		self.vcount = self.polycount // 2
-		self.vpolys = []
-		self.X = [1] * self.vcount
-		self.Bacc = [0] * self.vcount
-		self.storedB = storedB
-		self.POLYS = POLYS
+    def __init__(self, polycount, blockcount, storedB, POLYS):
+        self.polycount = polycount
+        self.blockcount = blockcount
+        self.vcount = self.polycount // 2
+        self.vpolys = []
+        self.X = [1] * self.vcount
+        self.Bacc = [0] * self.vcount
+        self.storedB = storedB
+        self.POLYS = POLYS
 
-	def verify(self):
-		while len(self.vpolys) < self.vcount:
-			match = False
-			pindex = srand(self.polycount)
-			for pi in self.vpolys:
-				if pi == pindex:
-					match = True
-					break
-			if match == False:
-				self.vpolys.append(pindex)
+    def verify(self):
+        self._choose_vpolys()
+        self._compute_Bacc()
+        self._check_final_accumulator()
 
-		for block in range(self.blockcount):
-			B = self.storedB[block]
+    def _choose_vpolys(self):
+        while len(self.vpolys) < self.vcount:
+            match = False
+            pindex = srand(self.polycount)
+            for pi in self.vpolys:
+                if pi == pindex:
+                    match = True
+                    break
+            if match == False:
+                self.vpolys.append(pindex)
 
-			for pindex in range(self.vcount):
-				P = self.POLYS[self.vpolys[pindex]]
-				self.X[pindex] = (self.X[pindex] * P.xvalue) % P.modulus
-				self.Bacc[pindex] = (self.Bacc[pindex] + B * self.X[pindex]) & p2sigmask
+    def _compute_Bacc(self):
+        for block in range(self.blockcount):
+            B = self.storedB[block]
 
-		# check the final accumulator against the polys
-		for pindex in range(self.vcount):
-			P = self.POLYS[self.vpolys[pindex]]
-			BtestC = (B0 * P.SUMPOLY + B1 * P.D1POLY + B2 * P.D2POLY)
-			BtestF = ((F0 * P.SUMPOLY + F1 * P.D1POLY + F2 * P.D2POLY) >> pow2bits)
-			Btest = (BtestC + sigunpad(BtestF)) & p2mask
-			if Btest != sigunpad(self.Bacc[pindex]):
-				print(Btest)
-				print(sigunpad(self.Bacc[pindex]))
-				print("ERROR: Polynomial checking has failed. Stopping.")
-				sys.exit()
+            for pindex in range(self.vcount):
+                P = self.POLYS[self.vpolys[pindex]]
+                self.X[pindex] = (self.X[pindex] * P.xvalue) % P.modulus
+                self.Bacc[pindex] = (self.Bacc[pindex] + B * self.X[pindex]) & p2sigmask
+
+    def _check_final_accumulator(self):
+        for pindex in range(self.vcount):
+            P = self.POLYS[self.vpolys[pindex]]
+            BtestC = (B0 * P.SUMPOLY + B1 * P.D1POLY + B2 * P.D2POLY)
+            BtestF = ((F0 * P.SUMPOLY + F1 * P.D1POLY + F2 * P.D2POLY) >> pow2bits)
+            Btest = (BtestC + sigunpad(BtestF)) & p2mask
+            if Btest != sigunpad(self.Bacc[pindex]):
+                print(Btest)
+                print(sigunpad(self.Bacc[pindex]))
+                print("ERROR: Polynomial checking has failed. Stopping.")
+                sys.exit()
 
 def get_ranged_prime( hashint, roof ):
 	hashint=hashint%roof
