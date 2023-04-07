@@ -102,11 +102,13 @@ class BlockCoder:
 		selection = self.data[block][self.sindex]
 		Bp = (self.B0 * SUM[block] + self.B1 * D1[block] + self.B2 * D2[block]) & self.p2mask
 		Bf = ((self.F0 * SUM[block] + self.F1 * D1[block] + self.F2 * D2[block]) >> self.pow2bits) & self.p2sigmask
-		B = (sigpad(Bp) + Bf) & self.p2sigmask
+		hashing_tools_instance = HashingTools()
+		B = (hashing_tools_instance.sigpad(Bp) + Bf) & self.p2sigmask
 		return B
 	
 	def decode_block(self, B, block):
-		decode = (sigunpad(B) * (pow2 - n)) & self.p2mask
+		hashing_tools_instance = HashingTools()
+		decode = (hashing_tools_instance.sigunpad(B) * (pow2 - n)) & self.p2mask
 		decode = (decode * self.unblind) % self.primes
 		if decode != self.data[block][self.sindex]:
 			print("ERROR: Decode error. Stopping.")
@@ -114,53 +116,54 @@ class BlockCoder:
 
 #massive class for all the polynomical verification steps at the end. Likely candidate for breaking up later...
 class PolynomialVerifier:
-    def __init__(self, polycount, blockcount, storedB, POLYS):
-        self.polycount = polycount
-        self.blockcount = blockcount
-        self.vcount = self.polycount // 2
-        self.vpolys = []
-        self.X = [1] * self.vcount
-        self.Bacc = [0] * self.vcount
-        self.storedB = storedB
-        self.POLYS = POLYS
+	def __init__(self, polycount, blockcount, storedB, POLYS):
+		self.polycount = polycount
+		self.blockcount = blockcount
+		self.vcount = self.polycount // 2
+		self.vpolys = []
+		self.X = [1] * self.vcount
+		self.Bacc = [0] * self.vcount
+		self.storedB = storedB
+		self.POLYS = POLYS
 
-    def verify(self):
-        self._choose_vpolys()
-        self._compute_Bacc()
-        self._check_final_accumulator()
+	def verify(self):
+		self._choose_vpolys()
+		self._compute_Bacc()
+		self._check_final_accumulator()
 
-    def _choose_vpolys(self):
-        while len(self.vpolys) < self.vcount:
-            match = False
-            pindex = srand(self.polycount)
-            for pi in self.vpolys:
-                if pi == pindex:
-                    match = True
-                    break
-            if match == False:
-                self.vpolys.append(pindex)
+	def _choose_vpolys(self):
+		while len(self.vpolys) < self.vcount:
+			match = False
+			pindex = srand(self.polycount)
+			for pi in self.vpolys:
+				if pi == pindex:
+					match = True
+					break
+			if match == False:
+				self.vpolys.append(pindex)
 
-    def _compute_Bacc(self):
-        for block in range(self.blockcount):
-            B = self.storedB[block]
+	def _compute_Bacc(self):
+		for block in range(self.blockcount):
+			B = self.storedB[block]
 
-            for pindex in range(self.vcount):
-                P = self.POLYS[self.vpolys[pindex]]
-                self.X[pindex] = (self.X[pindex] * P.xvalue) % P.modulus
-                self.Bacc[pindex] = (self.Bacc[pindex] + B * self.X[pindex]) & p2sigmask
+			for pindex in range(self.vcount):
+				P = self.POLYS[self.vpolys[pindex]]
+				self.X[pindex] = (self.X[pindex] * P.xvalue) % P.modulus
+				self.Bacc[pindex] = (self.Bacc[pindex] + B * self.X[pindex]) & p2sigmask
 
-    def _check_final_accumulator(self):
-        for pindex in range(self.vcount):
-            P = self.POLYS[self.vpolys[pindex]]
-            BtestC = (B0 * P.SUMPOLY + B1 * P.D1POLY + B2 * P.D2POLY)
-            BtestF = ((F0 * P.SUMPOLY + F1 * P.D1POLY + F2 * P.D2POLY) >> pow2bits)
-            Btest = (BtestC + sigunpad(BtestF)) & p2mask
-            if Btest != sigunpad(self.Bacc[pindex]):
-                print(Btest)
-                print(sigunpad(self.Bacc[pindex]))
-                print("ERROR: Polynomial checking has failed. Stopping.")
-                sys.exit()
-
+	def _check_final_accumulator(self):
+		for pindex in range(self.vcount):
+			hashing_tools_instance = HashingTools()
+			P = self.POLYS[self.vpolys[pindex]]
+			BtestC = (B0 * P.SUMPOLY + B1 * P.D1POLY + B2 * P.D2POLY)
+			BtestF = ((F0 * P.SUMPOLY + F1 * P.D1POLY + F2 * P.D2POLY) >> pow2bits)
+			Btest = (BtestC + hashing_tools_instance.sigunpad(BtestF)) & p2mask
+			if Btest != hashing_tools_instance.sigunpad(self.Bacc[pindex]):
+				print(Btest)
+				print(sigunpad(self.Bacc[pindex]))
+				print("ERROR: Polynomial checking has failed. Stopping.")
+				sys.exit()
+"""
 def get_ranged_prime( hashint, roof ):
 	hashint=hashint%roof
 	while isprime(hashint)==False: hashint=(hashint+1)%roof
@@ -168,6 +171,20 @@ def get_ranged_prime( hashint, roof ):
 
 def sigpad(x):   return (x << sigbuffbits)	#create signature buffer space
 def sigunpad(x): return (x >> sigbuffbits)	#remove signature buffer space
+"""
+
+class HashingTools:
+	def get_ranged_prime(self, hashint, roof):
+		hashint = hashint % roof
+		while isprime(hashint) == False:
+			hashint = (hashint + 1) % roof
+		return hashint
+	
+	def sigpad(self, x):
+		return (x << sigbuffbits) # create signature buffer space
+	
+	def sigunpad(self, x):
+		return (x >> sigbuffbits) # remove signature buffer space
 
 #
 # fixed network variables
@@ -225,8 +242,8 @@ for pindex in range(0,polycount):
 #build polynomial signature set up
 POLYS = []
 for pindex in range(0,polycount):
-
-	m = get_ranged_prime( hash256sum(decodekeys,pindex), sigcoefficientmax )
+	hashing_tools_instance = HashingTools()
+	m = hashing_tools_instance.get_ranged_prime( hash256sum(decodekeys,pindex), sigcoefficientmax )
 	x = hash256sum(decodekeys,pindex,m) % m
 
 	POLYS.append(PolyClass(m,x))
