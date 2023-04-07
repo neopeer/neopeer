@@ -163,16 +163,7 @@ class PolynomialVerifier:
 				print(sigunpad(self.Bacc[pindex]))
 				print("ERROR: Polynomial checking has failed. Stopping.")
 				sys.exit()
-"""
-def get_ranged_prime( hashint, roof ):
-	hashint=hashint%roof
-	while isprime(hashint)==False: hashint=(hashint+1)%roof
-	return hashint
-
-def sigpad(x):   return (x << sigbuffbits)	#create signature buffer space
-def sigunpad(x): return (x >> sigbuffbits)	#remove signature buffer space
-"""
-
+#this class can be broken into three. Just doing this for speed of getting things into classes at the moment.
 class HashingTools:
 	def get_ranged_prime(self, hashint, roof):
 		hashint = hashint % roof
@@ -185,6 +176,50 @@ class HashingTools:
 	
 	def sigunpad(self, x):
 		return (x >> sigbuffbits) # remove signature buffer space
+#Another huge class this time for making POLYS
+class PolynomialGenerator:
+	def __init__(self, decodekeys, polycount, sigcoefficientmax, blockcount, SUM, D1, D2, pow2sig):
+		self.decodekeys = decodekeys
+		self.polycount = polycount
+		self.sigcoefficientmax = sigcoefficientmax
+		self.blockcount = blockcount
+		self.SUM = SUM
+		self.D1 = D1
+		self.D2 = D2
+		self.pow2sig = pow2sig
+		
+	def generate_polynomials(self):
+		POLYS = []
+		for pindex in range(0,self.polycount):
+			hashing_tools_instance = HashingTools()
+			m = hashing_tools_instance.get_ranged_prime(hash256sum(self.decodekeys,pindex), self.sigcoefficientmax)
+			x = hash256sum(self.decodekeys,pindex,m) % m
+
+			POLYS.append(PolyClass(m,x))
+			P = POLYS[pindex]
+			P.SUMPOLY = 0
+			P.D1POLY  = 0
+			P.D2POLY  = 0
+			X = x
+
+			for i in range(0,self.blockcount):
+				P.SUMPOLY += X*self.SUM[i] #should not overflow pow2sig
+				P.D1POLY  += X*self.D1[i]  #should not overflow pow2sig
+				P.D2POLY  += X*self.D2[i]  #should not overflow pow2sig
+				X = (X*x)%m
+
+			if P.SUMPOLY > self.pow2sig:
+				print("ERROR: SUMPOLY overflow. Stopping.")
+				sys.exit()
+			if P.D1POLY > self.pow2sig:
+				print("ERROR: D1POLY overflow. Stopping.")
+				sys.exit()
+			if P.D2POLY > self.pow2sig:
+				print("ERROR: D2POLY overflow. Stopping.")
+				sys.exit()
+		return POLYS
+		
+
 
 #
 # fixed network variables
@@ -238,7 +273,7 @@ for pindex in range(0,polycount):
 		P.D1POLY  += (X)(B.D1)  ;should not exceed (pow2sig)
 		P.D2POLY  += (X)(B.D2)  ;should not exceed (pow2sig)
 """
-
+"""
 #build polynomial signature set up
 POLYS = []
 for pindex in range(0,polycount):
@@ -268,7 +303,10 @@ for pindex in range(0,polycount):
 	if P.D2POLY>pow2sig:
 		print("ERROR: D2POLY overflow. Stopping.")
 		sys.exit()
+"""
 
+polynomial_generator = PolynomialGenerator(decodekeys, polycount, sigcoefficientmax, blockcount, SUM, D1, D2, pow2sig)
+POLYS = polynomial_generator.generate_polynomials()
 
 #
 # content request generation
