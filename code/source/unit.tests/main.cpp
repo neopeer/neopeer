@@ -74,6 +74,7 @@ namespace testunits {
 		operator const double() 		const 										{ SAFE() return(mpz_get_d(b.m_v[0]));  }
 		operator const unsigned int() 	const 										{ SAFE() return(mpz_get_ui(b.m_v[0]));   }
 
+		inline bool operator!=( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
 		inline bool operator==( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
 		inline bool operator>( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return lhs._gt(rhs);  }
 		inline bool operator>=( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return lhs._gte(rhs);  }
@@ -85,6 +86,7 @@ namespace testunits {
 		inline biguint_t<S> operator/( biguint_t<S> lhs, const biguint_t<S> &rhs ) 	{ lhs/=rhs; return(lhs); }
 		inline biguint_t<S> operator%( biguint_t<S> lhs, const biguint_t<S> &rhs ) 	{ lhs%=rhs; return(lhs); }
 
+		inline bool operator!=( const biguint_t<S> &lhs, const int rhs ) 			{ return lhs._eq(rhs);  }
 		inline bool operator==( const biguint_t<S> &lhs, const int rhs ) 			{ return lhs._eq(rhs);  }
 		inline bool operator>( const biguint_t<S> &lhs, const int rhs ) 			{ return lhs._gt(rhs);  }
 		inline bool operator>=( const biguint_t<S> &lhs, const int rhs ) 			{ return lhs._gte(rhs);  }
@@ -97,6 +99,7 @@ namespace testunits {
 		inline biguint_t<S> operator%( biguint_t<S> lhs, const int rhs ) 			{ lhs%=rhs; return(lhs); }
 
 		//int lhs overloads
+		inline bool operator!=( const int lhs, const biguint_t<S> &rhs ) 			{ return rhs._eq(lhs); }
 		inline bool operator==( const int lhs, const biguint_t<S> &rhs ) 			{ return rhs._eq(lhs); }
 		inline bool operator>( const int lhs, const biguint_t<S> &rhs ) 			{ return rhs._lt(lhs); }
 		inline bool operator>=( const int lhs, const biguint_t<S> &rhs ) 			{ return rhs._lte(lhs);  }
@@ -117,6 +120,7 @@ namespace testunits {
 
 		inline void operator=( int val ) 											{ SAFE() mpz_set_si( this->b.m_v[0], val ); }
 		//biginteger overloads
+		inline bool operator!=( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
 		inline bool operator==( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
 		inline bool operator>( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return lhs._gt(rhs);  }
 		inline bool operator>=( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return lhs._gte(rhs);  }
@@ -129,6 +133,7 @@ namespace testunits {
 		inline bigint_t<S> operator%( bigint_t<S> lhs, const bigint_t<S> &rhs ) 	{ lhs%=rhs; return(lhs); }
 
 		//int rhs overloads
+		inline bool operator!=( const bigint_t<S> &lhs, const int rhs ) 			{ return lhs._eq(rhs);  }
 		inline bool operator==( const bigint_t<S> &lhs, const int rhs ) 			{ return lhs._eq(rhs);  }
 		inline bool operator>( const bigint_t<S> &lhs, const int rhs ) 				{ return lhs._gt(rhs);  }
 		inline bool operator>=( const bigint_t<S> &lhs, const int rhs ) 			{ return lhs._gte(rhs);  }
@@ -141,6 +146,7 @@ namespace testunits {
 		inline bigint_t<S> operator%( bigint_t<S> lhs, const int rhs ) 				{ lhs%=rhs; return(lhs); }
 
 		//int lhs overloads
+		inline bool operator!=( const int lhs, const bigint_t<S> &rhs ) 			{ return rhs._eq(lhs); }
 		inline bool operator==( const int lhs, const bigint_t<S> &rhs ) 			{ return rhs._eq(lhs); }
 		inline bool operator>( const int lhs, const bigint_t<S> &rhs ) 				{ return rhs._lt(lhs); }
 		inline bool operator>=( const int lhs, const bigint_t<S> &rhs ) 			{ return rhs._lte(lhs);  }
@@ -176,6 +182,7 @@ namespace testunits {
 		operator const int() 	const 												{ SAFE() return((int)mpq_get_d(b.m_v[0])); }
 
 		//frac overloads
+		inline bool operator!=( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
 		inline bool operator==( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
 		inline bool operator>( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return lhs._gt(rhs);  }
 		inline bool operator>=( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return lhs._gte(rhs);  }
@@ -187,6 +194,7 @@ namespace testunits {
 		inline bigfrac_t<S> operator/( bigfrac_t<S> lhs, const bigfrac_t<S> &rhs ) 	{ lhs/=rhs; return(lhs); }
 
 		//double rhs overloads
+		inline bool operator!=( const bigfrac_t<S> &lhs, const double &rhs )		 { return lhs._eq(rhs);  }
 		inline bool operator==( const bigfrac_t<S> &lhs, const double &rhs )		 { return lhs._eq(rhs);  }
 		inline bool operator>( const bigfrac_t<S> &lhs, const double &rhs )		 	{ return lhs._gt(rhs);  }
 		inline bool operator>=( const bigfrac_t<S> &lhs, const double &rhs )		{ return lhs._gte(rhs);  }
@@ -198,6 +206,7 @@ namespace testunits {
 		inline bigint_t<S> operator/( bigint_t<S> lhs, const double &rhs ) 			{ lhs/=rhs; return(lhs); }
 
 		//double lhs overloads
+		inline bool operator!=( const double &lhs, const bigfrac_t<S> &rhs ) 		{ return rhs._eq(lhs); }
 		inline bool operator==( const double &lhs, const bigfrac_t<S> &rhs ) 		{ return rhs._eq(lhs); }
 		inline bool operator>( const double &lhs, const bigfrac_t<S> &rhs ) 		{ return rhs._lt(lhs); }
 		inline bool operator>=( const double &lhs, const bigfrac_t<S> &rhs ) 		{ return rhs._lte(lhs);  }

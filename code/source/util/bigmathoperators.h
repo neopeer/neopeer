@@ -28,6 +28,9 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 //
 
 template <int S>
+inline bool operator!=( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return !lhs._eq(rhs); }
+
+template <int S>
 inline bool operator==( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
 
 template <int S>
@@ -61,6 +64,9 @@ inline biguint_t<S> operator%( biguint_t<S> lhs, const biguint_t<S> &rhs ) 	{ lh
 //int rhs overloads
 
 template <int S>
+inline bool operator!=( const biguint_t<S> &lhs, const int rhs ) 			{ return !lhs._eq(rhs);  }
+
+template <int S>
 inline bool operator==( const biguint_t<S> &lhs, const int rhs ) 			{ return lhs._eq(rhs);  }
 
 template <int S>
@@ -92,6 +98,9 @@ inline biguint_t<S> operator%( biguint_t<S> lhs, const int rhs ) 			{ lhs%=rhs; 
 
 
 //int lhs overloads
+
+template <int S>
+inline bool operator!=( const int lhs, const biguint_t<S> &rhs ) 			{ return !rhs._eq(lhs); }
 
 template <int S>
 inline bool operator==( const int lhs, const biguint_t<S> &rhs ) 			{ return rhs._eq(lhs); }
@@ -131,6 +140,9 @@ inline biguint_t<S> operator%( const int lhs, const biguint_t<S> &rhs ) 	{ bigui
 //biginteger overloads
 
 template <int S>
+inline bool operator!=( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return !lhs._eq(rhs);  }
+
+template <int S>
 inline bool operator==( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
 
 template <int S>
@@ -164,6 +176,9 @@ inline bigint_t<S> operator%( bigint_t<S> lhs, const bigint_t<S> &rhs ) 	{ lhs%=
 //int rhs overloads
 
 template <int S>
+inline bool operator!=( const bigint_t<S> &lhs, const int rhs ) 			{ return !lhs._eq(rhs);  }
+
+template <int S>
 inline bool operator==( const bigint_t<S> &lhs, const int rhs ) 			{ return lhs._eq(rhs);  }
 
 template <int S>
@@ -195,6 +210,9 @@ inline bigint_t<S> operator%( bigint_t<S> lhs, const int rhs ) 				{ lhs%=rhs; r
 
 
 //int lhs overloads
+
+template <int S>
+inline bool operator!=( const int lhs, const bigint_t<S> &rhs ) 			{ return !rhs._eq(lhs); }
 
 template <int S>
 inline bool operator==( const int lhs, const bigint_t<S> &rhs ) 			{ return rhs._eq(lhs); }
@@ -233,6 +251,9 @@ inline bigint_t<S> operator%( const int lhs, const bigint_t<S> &rhs )	 	{ bigint
 //
 
 template <int S>
+inline bool operator!=( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return !lhs._eq(rhs);  }
+
+template <int S>
 inline bool operator==( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
 
 template <int S>
@@ -263,6 +284,9 @@ inline bigfrac_t<S> operator/( bigfrac_t<S> lhs, const bigfrac_t<S> &rhs ) 	{ lh
 //double rhs overloads
 
 template <int S>
+inline bool operator!=( const bigfrac_t<S> &lhs, const double &rhs )		 { return !lhs._eq(rhs);  }
+
+template <int S>
 inline bool operator==( const bigfrac_t<S> &lhs, const double &rhs )		 { return lhs._eq(rhs);  }
 
 template <int S>
@@ -291,6 +315,9 @@ inline bigint_t<S> operator/( bigint_t<S> lhs, const double &rhs ) 			{ lhs/=rhs
 
 
 //double lhs overloads
+
+template <int S>
+inline bool operator!=( const double &lhs, const bigfrac_t<S> &rhs ) 		{ return !rhs._eq(lhs); }
 
 template <int S>
 inline bool operator==( const double &lhs, const bigfrac_t<S> &rhs ) 		{ return rhs._eq(lhs); }
