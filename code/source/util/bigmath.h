@@ -309,6 +309,7 @@ struct bigint_t : biguint_t<S> {
 	inline bigint_t( const bigint_t<S> &rhs ) : biguint_t<S>( rhs ) {}
 
 	inline void operator=( int val ) 								{ SAFE() mpz_set_si( this->b.m_v[0], val ); }
+	inline void operator=( const bigint_t<S> &rhs )					{ ((biguint_t<S>*)this)->operator=(rhs); }
 
 	inline bool _eq( const int rhs ) const 							{ SAFE() return(mpz_cmp_si( this->b.m_v[0], rhs ) == 0);  }
 	inline bool _gt( const int rhs ) const 							{ SAFE() return(mpz_cmp_si( this->b.m_v[0], rhs ) > 0);  }
