@@ -1,0 +1,1 @@
+ot_py3.py is a python3 implementation of the sample Oblivious transfer code originally written for py2. class_based_ot_py3.py is the same code effectively but with classes added to do the work in sample 3.
