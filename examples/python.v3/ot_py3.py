@@ -34,7 +34,7 @@ for x in range(1,len(primelist)):
 qspace 		= compute_lcm( coset, qprime-1 ) / coset
 primes 		= arrayproduct(primelist)
 n      		= primes*qprime
-encodingrange 	= 2#**(modulusbits-primebits-(modulusbits-primebits)/primebits*2)	#SECURITY: Check if the floor for primes is a security risk
+encodingrange 	= 2**(modulusbits-primebits-(modulusbits-primebits)//primebits*2)	#SECURITY: Check if the floor for primes is a security risk
 
 #immutable encoding of random data
 print("Generating blocks. Please wait.")
