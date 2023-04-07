@@ -35,6 +35,12 @@ struct linkitem
 	linkitem *m_next, *m_prev;
 
 #if !defined(NDEBUG) || !defined(DISABLEMEMSAFETY)
+	void operator=( const linkitem &rh ) {
+		char buffer[256];
+		sprintf( buffer, "Potentially unsafe copy of structure. Halting." );
+		throw std::runtime_error(buffer);
+	}
+
 	linkitem( const linkitem &rh ) {
 		char buffer[256];
 		sprintf( buffer, "Potentially unsafe copy of structure. Halting." );
