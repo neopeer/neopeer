@@ -218,7 +218,46 @@ class PolynomialGenerator:
 				print("ERROR: D2POLY overflow. Stopping.")
 				sys.exit()
 		return POLYS
-		
+#
+class PrepCarryInformation:
+	def __init__(self, b0, b1, b2, n, pow2sigbits, pow2):
+		self.b0 = b0
+		self.b1 = b1
+		self.b2 = b2
+		self.n = n
+		self.pow2sigbits = pow2sigbits
+		self.pow2 = pow2
+		self.inn = inverse(-n, pow2)
+		self.p2mask = (pow2 - 1)
+		self.pow2sig = 2 ** (pow2sigbits + 1)
+		self.MASKH = (self.pow2sig - 1) - (self.n.bit_length() - 1)
+
+		self.B0 = (self.b0*self.inn)&self.p2mask
+		self.B1 = (self.b1*self.inn)&self.p2mask
+		self.B2 = (self.b2*self.inn)&self.p2mask
+
+		self.F0 = ((self.b0 << self.pow2sigbits)//self.n) & self.MASKH
+		self.F1 = ((self.b1 << self.pow2sigbits)//self.n) & self.MASKH
+		self.F2 = ((self.b2 << self.pow2sigbits)//self.n) & self.MASKH
+
+		if sanitycheck:
+			getcontext().prec = ceil(log10(2**self.pow2sigbits))+1
+			B0test = (self.b0*self.inn)%self.pow2
+			B1test = (self.b1*self.inn)%self.pow2
+			B2test = (self.b2*self.inn)%self.pow2
+			F0test = int(Decimal(self.b0)/Decimal(self.n) * self.pow2sig) & self.MASKH
+			F1test = int(Decimal(self.b1)/Decimal(self.n) * self.pow2sig) & self.MASKH
+			F2test = int(Decimal(self.b2)/Decimal(self.n) * self.pow2sig) & self.MASKH
+			error=False
+			if B0test!=self.B0: error=True;
+			if B1test!=self.B1: error=True;
+			if B2test!=self.B2: error=True;
+			if F0test!=self.F0: error=True;
+			if F1test!=self.F1: error=True;
+			if F2test!=self.F2: error=True;
+			if error: 
+				print("Sample 3 - Sanity check failed. Stopping.")
+				sys.exit()
 
 
 #
@@ -273,37 +312,6 @@ for pindex in range(0,polycount):
 		P.D1POLY  += (X)(B.D1)  ;should not exceed (pow2sig)
 		P.D2POLY  += (X)(B.D2)  ;should not exceed (pow2sig)
 """
-"""
-#build polynomial signature set up
-POLYS = []
-for pindex in range(0,polycount):
-	hashing_tools_instance = HashingTools()
-	m = hashing_tools_instance.get_ranged_prime( hash256sum(decodekeys,pindex), sigcoefficientmax )
-	x = hash256sum(decodekeys,pindex,m) % m
-
-	POLYS.append(PolyClass(m,x))
-	P = POLYS[pindex]
-	P.SUMPOLY = 0
-	P.D1POLY  = 0
-	P.D2POLY  = 0
-	X = x
-
-	for i in range(0,blockcount):
-		P.SUMPOLY += X*SUM[i] #should not overflow pow2sig
-		P.D1POLY  += X*D1[i]  #should not overflow pow2sig
-		P.D2POLY  += X*D2[i]  #should not overflow pow2sig
-		X = (X*x)%m
-
-	if P.SUMPOLY>pow2sig:
-		print("ERROR: SUMPOLY overflow. Stopping.")
-		sys.exit()
-	if P.D1POLY>pow2sig:
-		print("ERROR: D1POLY overflow. Stopping.")
-		sys.exit()
-	if P.D2POLY>pow2sig:
-		print("ERROR: D2POLY overflow. Stopping.")
-		sys.exit()
-"""
 
 polynomial_generator = PolynomialGenerator(decodekeys, polycount, sigcoefficientmax, blockcount, SUM, D1, D2, pow2sig)
 POLYS = polynomial_generator.generate_polynomials()
@@ -355,35 +363,14 @@ b1	 	= (CRT([blind,r1qpow],[primes,qprime])*s1) % n
 b2	 	= (CRT([blind,r2qpow],[primes,qprime])*s2) % n
 
 #prepare carry information
-inn = inverse(-n,pow2)
-B0  = (b0*inn)&p2mask			#B0 = ((b0)(-n)^-1) Mod pow2
-B1  = (b1*inn)&p2mask			#B1 = ((b1)(-n)^-1) Mod pow2
-B2  = (b2*inn)&p2mask			#B2 = ((b2)(-n)^-1) Mod pow2
 
-F0  = ((b0 << pow2sigbits)//n) & MASKH	#F0 = floor( 0.(b0/n) * pow2sig ) & MASKH	;truncated binary representation of traditional divide
-F1  = ((b1 << pow2sigbits)//n) & MASKH	#F1 = floor( 0.(b1/n) * pow2sig ) & MASKH	;truncated binary representation of traditional divide
-F2  = ((b2 << pow2sigbits)//n) & MASKH	#F2 = floor( 0.(b2/n) * pow2sig ) & MASKH	;truncated binary representation of traditional divide
-
-if sanitycheck:
-	getcontext().prec = ceil(log10(2**pow2sigbits))+1
-	B0test = (b0*inn)%pow2
-	B1test = (b1*inn)%pow2
-	B2test = (b2*inn)%pow2
-	F0test = int(Decimal(b0)/Decimal(n) * pow2sig) & MASKH
-	F1test = int(Decimal(b1)/Decimal(n) * pow2sig) & MASKH
-	F2test = int(Decimal(b2)/Decimal(n) * pow2sig) & MASKH
-	error=False
-	if B0test!=B0: error=True;
-	if B1test!=B1: error=True;
-	if B2test!=B2: error=True;
-	if F0test!=F0: error=True;
-	if F1test!=F1: error=True;
-	if F2test!=F2: error=True;
-	if error: 
-		print("Sample 3 - Sanity check failed. Stopping.")
-		sys.exit()
-
-
+carry_info = PrepCarryInformation(b0, b1, b2, n, pow2sigbits, pow2)
+B0 = carry_info.B0
+B1 = carry_info.B1
+B2 = carry_info.B2
+F0 = carry_info.F0
+F1 = carry_info.F1
+F2 = carry_info.F2
 
 #
 # content fetching (encoding and decoding)
