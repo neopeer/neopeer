@@ -24,7 +24,7 @@ Debugger -> Start/Continue Debugger
 
 **Enhanced Debugging**:  
 Add the following to the compiler/linker options:  
-&emsp;&emsp -fsanitize=undefined,address  
+&emsp;&emsp; -fsanitize=undefined,address  
 
 **WARNING on Enhanced Debugging**:  
 These checks can be glitchy if you run the debug executable without the debugger. Specifically, it's not uncommon to see an infinite loop of: AddressSanitizer:DEADLYSIGNAL. This error is a direct consequence of declaring static variables globally for the linker *and* executing under the aforementioned conditions. To prevent confusion these extra checks are disabled by default.	
