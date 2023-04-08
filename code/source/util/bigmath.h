@@ -444,9 +444,11 @@ typedef bigfrac_t<4096>  bigfrac4096_t;
 typedef bigfrac_t<8192>  bigfrac8192_t;
 typedef bigfrac_t<16384> bigfrac16384_t;
 
+
 //
 // stream multiplier numbers
 //
+
 
 
 
