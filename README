@@ -1,6 +1,6 @@
-License: MIT for everything in this repository, with exceptions only for third-party includes.
+License: MIT for all custom work in this repository. Pirate our code.
 
-License Exceptions: Binaries for AppImage packaging in ./deployment, copyrighted .pdf files in ./specifications/whitepapers, simplified BSD for "numbthy" Python include in ./examples. We assert "Fair Use" for all derivative works in all (sub)directories of "./webtemplate/".
+License Exceptions: Binaries for AppImage packaging in ./deployment, copyrighted .pdf files in ./specifications/whitepapers, simplified BSD for third-party Python include in ./examples. We assert "Fair Use" for all derivative works in all (sub)directories of "./webtemplate/".
 
 Caution:
 This repository is still in development. 
