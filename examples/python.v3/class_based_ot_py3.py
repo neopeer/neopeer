@@ -190,7 +190,7 @@ class PolynomialGenerator:
 		
 	def generate_polynomials(self):
 		POLYS = []
-		for pindex in range(0,self.polycount):
+		for pindex in range(self.polycount):
 			hashing_tools_instance = HashingTools()
 			m = hashing_tools_instance.get_ranged_prime(hash256sum(self.decodekeys,pindex), self.sigcoefficientmax)
 			x = hash256sum(self.decodekeys,pindex,m) % m
@@ -202,7 +202,7 @@ class PolynomialGenerator:
 			P.D2POLY  = 0
 			X = x
 
-			for i in range(0,self.blockcount):
+			for i in range(self.blockcount):
 				P.SUMPOLY += X*self.SUM[i] #should not overflow pow2sig
 				P.D1POLY  += X*self.D1[i]  #should not overflow pow2sig
 				P.D2POLY  += X*self.D2[i]  #should not overflow pow2sig
@@ -305,6 +305,25 @@ MASKH					= (pow2sig-1)-(kbits-1)
 #
 # signature generation by network admin or publisher
 #
+
+"""
+for pindex in range(0,polycount):
+
+	P = POLYS[pindex]
+	m = P.modulus = get_ranged_prime( hash(decodekeys,pindex), sigcoefficientmax )
+	x = P.xvalue = hash(decodekeys,pindex,m) % m
+
+	P.SUMPOLY = 0
+	P.D1POLY  = 0
+	P.D2POLY  = 0
+
+	for i in range(0,blockcount):
+		B = blocks[i]
+		X = (x^(i+1))%m
+		P.SUMPOLY += (X)(B.SUM) ;should not exceed (pow2sig)
+		P.D1POLY  += (X)(B.D1)  ;should not exceed (pow2sig)
+		P.D2POLY  += (X)(B.D2)  ;should not exceed (pow2sig)
+"""
 
 polynomial_generator = PolynomialGenerator(decodekeys, polycount, sigcoefficientmax, blockcount, SUM, D1, D2, pow2sig)
 POLYS = polynomial_generator.generate_polynomials()
