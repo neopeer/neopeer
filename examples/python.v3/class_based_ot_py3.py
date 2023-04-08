@@ -231,7 +231,11 @@ class PrepCarryInformation:
 		self.p2mask = (pow2 - 1)
 		self.pow2sig = 2 ** (pow2sigbits + 1)
 		self.MASKH = (self.pow2sig - 1) - (self.n.bit_length() - 1)
+		
+		self.prepare_carry_information()
+		self.run_sanity_check()
 
+	def prepare_carry_information(self):
 		self.B0 = (self.b0*self.inn)&self.p2mask
 		self.B1 = (self.b1*self.inn)&self.p2mask
 		self.B2 = (self.b2*self.inn)&self.p2mask
@@ -240,24 +244,32 @@ class PrepCarryInformation:
 		self.F1 = ((self.b1 << self.pow2sigbits)//self.n) & self.MASKH
 		self.F2 = ((self.b2 << self.pow2sigbits)//self.n) & self.MASKH
 
-		if sanitycheck:
-			getcontext().prec = ceil(log10(2**self.pow2sigbits))+1
-			B0test = (self.b0*self.inn)%self.pow2
-			B1test = (self.b1*self.inn)%self.pow2
-			B2test = (self.b2*self.inn)%self.pow2
-			F0test = int(Decimal(self.b0)/Decimal(self.n) * self.pow2sig) & self.MASKH
-			F1test = int(Decimal(self.b1)/Decimal(self.n) * self.pow2sig) & self.MASKH
-			F2test = int(Decimal(self.b2)/Decimal(self.n) * self.pow2sig) & self.MASKH
-			error=False
-			if B0test!=self.B0: error=True;
-			if B1test!=self.B1: error=True;
-			if B2test!=self.B2: error=True;
-			if F0test!=self.F0: error=True;
-			if F1test!=self.F1: error=True;
-			if F2test!=self.F2: error=True;
-			if error: 
-				print("Sample 3 - Sanity check failed. Stopping.")
-				sys.exit()
+	def run_sanity_check(self):
+		if not sanitycheck:
+			return
+		getcontext().prec = ceil(log10(2**self.pow2sigbits))+1
+		B0test = (self.b0*self.inn)%self.pow2
+		B1test = (self.b1*self.inn)%self.pow2
+		B2test = (self.b2*self.inn)%self.pow2
+		F0test = int(Decimal(self.b0)/Decimal(self.n) * self.pow2sig) & self.MASKH
+		F1test = int(Decimal(self.b1)/Decimal(self.n) * self.pow2sig) & self.MASKH
+		F2test = int(Decimal(self.b2)/Decimal(self.n) * self.pow2sig) & self.MASKH
+		error = False
+		if B0test != self.B0: 
+			error = True
+		if B1test != self.B1: 
+			error = True
+		if B2test != self.B2: 
+			error = True
+		if F0test != self.F0: 
+			error = True
+		if F1test != self.F1: 
+			error = True
+		if F2test != self.F2: 
+			error = True
+		if error: 
+			print("Sample 3 - Sanity check failed. Stopping.")
+			sys.exit()
 
 
 #
@@ -293,25 +305,6 @@ MASKH					= (pow2sig-1)-(kbits-1)
 #
 # signature generation by network admin or publisher
 #
-
-"""
-for pindex in range(0,polycount):
-
-	P = POLYS[pindex]
-	m = P.modulus = get_ranged_prime( hash(decodekeys,pindex), sigcoefficientmax )
-	x = P.xvalue = hash(decodekeys,pindex,m) % m
-
-	P.SUMPOLY = 0
-	P.D1POLY  = 0
-	P.D2POLY  = 0
-
-	for i in range(0,blockcount):
-		B = blocks[i]
-		X = (x^(i+1))%m
-		P.SUMPOLY += (X)(B.SUM) ;should not exceed (pow2sig)
-		P.D1POLY  += (X)(B.D1)  ;should not exceed (pow2sig)
-		P.D2POLY  += (X)(B.D2)  ;should not exceed (pow2sig)
-"""
 
 polynomial_generator = PolynomialGenerator(decodekeys, polycount, sigcoefficientmax, blockcount, SUM, D1, D2, pow2sig)
 POLYS = polynomial_generator.generate_polynomials()
@@ -365,6 +358,8 @@ b2	 	= (CRT([blind,r2qpow],[primes,qprime])*s2) % n
 #prepare carry information
 
 carry_info = PrepCarryInformation(b0, b1, b2, n, pow2sigbits, pow2)
+carry_info.prepare_carry_information()
+carry_info.run_sanity_check()
 B0 = carry_info.B0
 B1 = carry_info.B1
 B2 = carry_info.B2
