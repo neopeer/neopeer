@@ -57,6 +57,13 @@ namespace testunits {
 			bigint16384_t rounded=v1.round();
 			assert(strcmp((const char*)rounded,"-22")==0);
 		}
+
+		//global routines (rough handling of temp objects straight to strings)
+		{
+			assert(strcmp((const char*)bigint128_t::gcd(6,9),"3")==0);
+			assert(strcmp((const char*)bigint128_t::lcm(6,9),"18")==0);
+			assert(strcmp((const char*)bigint128_t::nextprime(14),"17")==0);
+		}
 		
 	}
 	
