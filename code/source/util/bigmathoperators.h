@@ -28,37 +28,37 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 //
 
 template <int S>
-inline bool operator!=( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return !lhs._eq(rhs); }
+inline bool operator!=( const biguint_t<S> &lhs, const mpz_t *rhs ) 		{ return !lhs._eq(rhs); }
 
 template <int S>
-inline bool operator==( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
+inline bool operator==( const biguint_t<S> &lhs, const mpz_t *rhs ) 		{ return lhs._eq(rhs);  }
 
 template <int S>
-inline bool operator>( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return lhs._gt(rhs);  }
+inline bool operator>( const biguint_t<S> &lhs, const mpz_t *rhs ) 			{ return lhs._gt(rhs);  }
 
 template <int S>
-inline bool operator>=( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return lhs._gte(rhs);  }
+inline bool operator>=( const biguint_t<S> &lhs, const mpz_t *rhs ) 		{ return lhs._gte(rhs);  }
 
 template <int S>
-inline bool operator<( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return lhs._lt(rhs);  }
+inline bool operator<( const biguint_t<S> &lhs, const mpz_t *rhs ) 			{ return lhs._lt(rhs);  }
 
 template <int S>
-inline bool operator<=( const biguint_t<S> &lhs, const biguint_t<S> &rhs ) 	{ return lhs._lte(rhs);  }
+inline bool operator<=( const biguint_t<S> &lhs, const mpz_t *rhs ) 		{ return lhs._lte(rhs);  }
 
 template <int S>
-inline biguint_t<S> operator+( biguint_t<S> lhs, const biguint_t<S> &rhs ) 	{ lhs+=rhs; return(lhs); }
+inline biguint_t<S> operator+( biguint_t<S> lhs, const mpz_t *rhs ) 		{ lhs+=rhs; return(lhs); }
 
 template <int S>
-inline biguint_t<S> operator-( biguint_t<S> lhs, const biguint_t<S> &rhs ) 	{ lhs-=rhs; return(lhs); }
+inline biguint_t<S> operator-( biguint_t<S> lhs, const mpz_t *rhs ) 		{ lhs-=rhs; return(lhs); }
 
 template <int S>
-inline biguint_t<S> operator*( biguint_t<S> lhs, const biguint_t<S> &rhs ) 	{ lhs*=rhs; return(lhs); }
+inline biguint_t<S> operator*( biguint_t<S> lhs, const mpz_t *rhs ) 		{ lhs*=rhs; return(lhs); }
 
 template <int S>
-inline biguint_t<S> operator/( biguint_t<S> lhs, const biguint_t<S> &rhs ) 	{ lhs/=rhs; return(lhs); }
+inline biguint_t<S> operator/( biguint_t<S> lhs, const mpz_t *rhs ) 		{ lhs/=rhs; return(lhs); }
 
 template <int S>
-inline biguint_t<S> operator%( biguint_t<S> lhs, const biguint_t<S> &rhs ) 	{ lhs%=rhs; return(lhs); }
+inline biguint_t<S> operator%( biguint_t<S> lhs, const mpz_t *rhs ) 		{ lhs%=rhs; return(lhs); }
 
 
 //int rhs overloads
@@ -140,37 +140,37 @@ inline biguint_t<S> operator%( const int lhs, const biguint_t<S> &rhs ) 	{ bigui
 //biginteger overloads
 
 template <int S>
-inline bool operator!=( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return !lhs._eq(rhs);  }
+inline bool operator!=( const bigint_t<S> &lhs, const mpz_t *rhs ) 			{ return !lhs._eq(rhs);  }
 
 template <int S>
-inline bool operator==( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
+inline bool operator==( const bigint_t<S> &lhs, const mpz_t *rhs ) 			{ return lhs._eq(rhs);  }
 
 template <int S>
-inline bool operator>( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return lhs._gt(rhs);  }
+inline bool operator>( const bigint_t<S> &lhs, const mpz_t *rhs ) 			{ return lhs._gt(rhs);  }
 
 template <int S>
-inline bool operator>=( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return lhs._gte(rhs);  }
+inline bool operator>=( const bigint_t<S> &lhs, const mpz_t *rhs ) 			{ return lhs._gte(rhs);  }
 
 template <int S>
-inline bool operator<( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return lhs._lt(rhs);  }
+inline bool operator<( const bigint_t<S> &lhs, const mpz_t *rhs ) 			{ return lhs._lt(rhs);  }
 
 template <int S>
-inline bool operator<=( const bigint_t<S> &lhs, const bigint_t<S> &rhs ) 	{ return lhs._lte(rhs);  }
+inline bool operator<=( const bigint_t<S> &lhs, const mpz_t *rhs ) 			{ return lhs._lte(rhs);  }
 
 template <int S>
-inline bigint_t<S> operator+( bigint_t<S> lhs, const bigint_t<S> &rhs ) 	{ lhs+=rhs; return(lhs); }
+inline bigint_t<S> operator+( bigint_t<S> lhs, const mpz_t *rhs ) 			{ lhs+=rhs; return(lhs); }
 
 template <int S>
-inline bigint_t<S> operator-( bigint_t<S> lhs, const bigint_t<S> &rhs ) 	{ lhs-=rhs; return(lhs); }
+inline bigint_t<S> operator-( bigint_t<S> lhs, const mpz_t *rhs ) 			{ lhs-=rhs; return(lhs); }
 
 template <int S>
-inline bigint_t<S> operator*( bigint_t<S> lhs, const bigint_t<S> &rhs ) 	{ lhs*=rhs; return(lhs); }
+inline bigint_t<S> operator*( bigint_t<S> lhs, const mpz_t *rhs ) 			{ lhs*=rhs; return(lhs); }
 
 template <int S>
-inline bigint_t<S> operator/( bigint_t<S> lhs, const bigint_t<S> &rhs ) 	{ lhs/=rhs; return(lhs); }
+inline bigint_t<S> operator/( bigint_t<S> lhs, const mpz_t *rhs ) 			{ lhs/=rhs; return(lhs); }
 
 template <int S>
-inline bigint_t<S> operator%( bigint_t<S> lhs, const bigint_t<S> &rhs ) 	{ lhs%=rhs; return(lhs); }
+inline bigint_t<S> operator%( bigint_t<S> lhs, const mpz_t *rhs ) 			{ lhs%=rhs; return(lhs); }
 
 
 //int rhs overloads
@@ -245,41 +245,41 @@ template <int S>
 inline bigint_t<S> operator%( const int lhs, const bigint_t<S> &rhs )	 	{ bigint_t<S> _lhs(lhs); _lhs%=rhs; return(_lhs); }
 
 
-
 //
 // ********* bigfrac_t overloads ********
 //
 
 template <int S>
-inline bool operator!=( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return !lhs._eq(rhs);  }
+inline bool operator!=( const bigfrac_t<S> &lhs, const mpq_t *rhs ) 		{ return !lhs._eq(rhs);  }
 
 template <int S>
-inline bool operator==( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return lhs._eq(rhs);  }
+inline bool operator==( const bigfrac_t<S> &lhs, const mpq_t *rhs ) 		{ return lhs._eq(rhs);  }
 
 template <int S>
-inline bool operator>( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return lhs._gt(rhs);  }
+inline bool operator>( const bigfrac_t<S> &lhs, const mpq_t *rhs ) 			{ return lhs._gt(rhs);  }
 
 template <int S>
-inline bool operator>=( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return lhs._gte(rhs);  }
+inline bool operator>=( const bigfrac_t<S> &lhs, const mpq_t *rhs ) 		{ return lhs._gte(rhs);  }
 
 template <int S>
-inline bool operator<( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return lhs._lt(rhs);  }
+inline bool operator<( const bigfrac_t<S> &lhs, const mpq_t *rhs ) 			{ return lhs._lt(rhs);  }
 
 template <int S>
-inline bool operator<=( const bigfrac_t<S> &lhs, const bigfrac_t<S> &rhs ) 	{ return lhs._lte(rhs);  }
+inline bool operator<=( const bigfrac_t<S> &lhs, const mpq_t *rhs ) 		{ return lhs._lte(rhs);  }
 
 template <int S>
-inline bigfrac_t<S> operator+( bigfrac_t<S> lhs, const bigfrac_t<S> &rhs ) 	{ lhs+=rhs; return(lhs); }
+inline bigfrac_t<S> operator+( bigfrac_t<S> lhs, const mpq_t *rhs ) 		{ lhs+=rhs; return(lhs); }
 
 template <int S>
-inline bigfrac_t<S> operator-( bigfrac_t<S> lhs, const bigfrac_t<S> &rhs ) 	{ lhs-=rhs; return(lhs); }
+inline bigfrac_t<S> operator-( bigfrac_t<S> lhs, const mpq_t *rhs ) 		{ lhs-=rhs; return(lhs); }
 
 template <int S>
-inline bigfrac_t<S> operator*( bigfrac_t<S> lhs, const bigfrac_t<S> &rhs ) 	{ lhs*=rhs; return(lhs); }
+inline bigfrac_t<S> operator*( bigfrac_t<S> lhs, const mpq_t *rhs ) 		{ lhs*=rhs; return(lhs); }
 
 template <int S>
-inline bigfrac_t<S> operator/( bigfrac_t<S> lhs, const bigfrac_t<S> &rhs ) 	{ lhs/=rhs; return(lhs); }
+inline bigfrac_t<S> operator/( bigfrac_t<S> lhs, const mpq_t *rhs ) 		{ lhs/=rhs; return(lhs); }
 
+//TODO: add mpz_t overloads
 
 //double rhs overloads
 
@@ -348,3 +348,4 @@ inline bigfrac_t<S> operator/( const double &lhs, const bigfrac_t<S> &rhs )	{ bi
 
 
 #endif
+
