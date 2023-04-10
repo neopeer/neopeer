@@ -2,15 +2,15 @@ Coding style recommendations are a combination of good practice and recommendati
 
 We request:  
 
-*Constants (including flags) should be in all caps to denote they are such*  
-*Global variables should be preceded with (g_) to indicate they are globals*  
-*Member variables in a class or structure should be preceded with (m_) to indicate they are members*  
-*Precede internal/private/protected function names in a class or structure with an indent and an underscore (_)*  
-*Favor declarations of most variables used within a function at the top of the function to simplify pentesting*
-*Avoid std::vectors in favor of in-house optimizations (e.g. automated linked lists / objects from memory banks)*  
-*Avoid excessive use of the keyword (auto) if it will force contributors to dig to identify the variable type*  
-*Avoid the use of lambdas for anything outside of simple operations, and please well-document what it is doing*  
-*Avoid convoluted program flow outside of implicit conversion pathways chosen by the compiler*  
+&emsp;*Constants (including flags) should be in all caps to denote they are such*  
+&emsp;*Global variables should be preceded with (g_) to indicate they are globals*  
+&emsp;*Member variables in a class or structure should be preceded with (m_) to indicate they are members*  
+&emsp;*Precede internal/private/protected function names in a class or structure with an indent and an underscore (_)*  
+&emsp;*Favor declarations of most variables used within a function at the top of the function to simplify pentesting*  
+&emsp;*Avoid std::vectors in favor of in-house optimizations (e.g. automated linked lists / objects from memory banks)*  
+&emsp;*Avoid excessive use of the keyword (auto) if it will force contributors to dig to identify the variable type*  
+&emsp;*Avoid the use of lambdas for anything outside of simple operations, and please well-document what it is doing*  
+&emsp;*Avoid convoluted program flow outside of implicit conversion pathways chosen by the compiler*  
 
 The purpose of these guidelines is to expedite understanding, testing, and debugging of program code.  
 
@@ -25,28 +25,28 @@ For example, the constructors in the math library are deliberately defined "loos
 
 If the programmer determines that a recommendation from the static analyzer is an edge case that should be suppressed, it may be done by placing a comment at the tail of the preceding line of the following form:  
 
-  *//cppcheck-suppress [warningcode]*  
+&emsp;*//cppcheck-suppress [warningcode]*  
 
 In the above you would replace [warningcode] with the appropriate code found from the output of:  
 
-  *cppcheck --errorlist --template='{file}:{line},{severity},{id},{message}'*  
+&emsp;*cppcheck --errorlist --template='{file}:{line},{severity},{id},{message}'*  
 
 
 **Example static analysis suppression:**  
 
 Let's say you receive the following warning:  
 
-  *(style) Struct 'biguint_t < 128 >' has a constructor with 1 argument that is not explicit.*  
+&emsp;*(style) Struct 'biguint_t < 128 >' has a constructor with 1 argument that is not explicit.*  
 
 If using Linux, the error code may be found the following way:  
 
-  *cppcheck --errorlist --template='{file}:{line},{severity},{id},{message}' | grep "is not explicit"*  
+&emsp;*cppcheck --errorlist --template='{file}:{line},{severity},{id},{message}' | grep "is not explicit"*  
 
 Gives return:  
 
-  *<error id="noExplicitConstructor" severity="style" msg="Class &apos;classname&apos; has a constructor with 1 argument that is not explicit." verbose="Class &apos;classname&apos; has a constructor with 1 argument that is not explicit. Such constructors should in general be explicit for type safety reasons. Using the explicit keyword in the constructor means some mistakes when using the class can be avoided." cwe="398">*  
+&emsp;*<error id="noExplicitConstructor" severity="style" msg="Class &apos;classname&apos; has a constructor with 1 argument that is not explicit." verbose="Class &apos;classname&apos; has a constructor with 1 argument that is not explicit. Such constructors should in general be explicit for type safety reasons. Using the explicit keyword in the constructor means some mistakes when using the class can be avoided." cwe="398">*  
 
 The comment to place on the preceding line to suppress the message would be:  
 
-  *//cppcheck-suppress noExplicitConstructor*
+&emsp;*//cppcheck-suppress noExplicitConstructor*
 
