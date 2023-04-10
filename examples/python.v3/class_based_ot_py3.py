@@ -271,6 +271,22 @@ class PrepCarryInformation:
 			print("Sample 3 - Sanity check failed. Stopping.")
 			sys.exit()
 
+#Terrible hacky class to move all this crypto code into 1 class
+class Security:
+	def __init__(self, primebits, sigcoefficientmaxbits, pow2bits, kbits):
+		self.primebits = primebits
+		self.sigcoefficientmaxbits = sigcoefficientmaxbits
+		self.pow2bits = pow2bits
+		self.kbits = self.primebits
+		self.sigbuffbits = int(ceil(log2(sigblockcount+braid_element_count)+sigcoefficientmaxbits))
+		self.sigbuffbits += 26
+		self.sigbuff = 2**self.sigbuffbits
+		self.sigcoefficientmax = 2**sigcoefficientmaxbits
+		self.pow2 = 2**pow2bits
+		self.pow2sig = 2**(pow2bits+self.sigbuffbits)
+		self.MASKH = (self.pow2sig-1)-(self.kbits-1)
+		self.pow2sigbits = (self.pow2bits+self.sigbuffbits)
+
 
 #
 # fixed network variables
@@ -284,23 +300,14 @@ polycount				= 12					#coded for optimal bandwidth wasteage size
 braid_element_count 			= 3
 sigblockcount				= blockcount				#should be hard-coded to 3000 (see ot.spec.9)
 
-#primebits				= minimum size of each primary prime	#already set
-sigcoefficientmaxbits			= 12					#maximum number of bits for coefficients in signature polynomial
-pow2bits 				= modulusbits				#top bit position for n ~= 2^(primebits*primecount)
-kbits					= primebits 				#security level (in bits)
-
-sigbuffbits				= int(ceil(log2(sigblockcount+braid_element_count)+sigcoefficientmaxbits))
-sigbuffbits				= sigbuffbits+26			#1 in 2^26 chance of carry error 
-pow2sigbits				= (pow2bits+sigbuffbits)
-
-k					= 2**kbits
-sigbuff					= 2**sigbuffbits
-sigcoefficientmax			= 2**sigcoefficientmaxbits
-
-pow2 					= 2**pow2bits
-pow2sig	 				= 2**pow2sigbits
-
-MASKH					= (pow2sig-1)-(kbits-1)
+security = Security(128, 12, 8320, 128)
+#variables need to be pulled out for now will make another pass to get them called straight from the class later.
+sigcoefficientmax=security.sigcoefficientmax
+pow2sig=security.pow2sig
+pow2=security.pow2
+pow2sigbits=security.pow2sigbits
+pow2bits=security.pow2bits
+sigbuffbits=security.sigbuffbits
 
 #
 # signature generation by network admin or publisher
