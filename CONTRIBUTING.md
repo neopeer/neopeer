@@ -44,7 +44,7 @@ If using Linux, the error code may be found the following way:
 
 Gives return:  
 
-&emsp;*<error id="noExplicitConstructor" severity="style" msg="Class &apos;classname&apos; has a constructor with 1 argument that is not explicit." verbose="Class &apos;classname&apos; has a constructor with 1 argument that is not explicit. Such constructors should in general be explicit for type safety reasons. Using the explicit keyword in the constructor means some mistakes when using the class can be avoided." cwe="398">*  
+&emsp;*error id="noExplicitConstructor" severity="style" msg="Class &apos;classname&apos; has a constructor with 1 argument that is not explicit." verbose="Class &apos;classname&apos; has a constructor with 1 argument that is not explicit. Such constructors should in general be explicit for type safety reasons. Using the explicit keyword in the constructor means some mistakes when using the class can be avoided." cwe="398"*  
 
 The comment to place on the preceding line to suppress the message would be:  
 
