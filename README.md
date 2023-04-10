@@ -1,5 +1,5 @@
 **License**:  
-MIT for all contributor work in this repository. Pirates welcome. &emsp;&emsp; ![Copy Me](docs/images/jolly-small.png)
+MIT for all contributor work in this repository. Pirates welcome! &emsp;&emsp; ![Copy Me](docs/images/jolly-small.png)
 
 **License Exceptions**:  
 Binaries for AppImage packaging in ./deployment, copyrighted .pdf files in ./specifications/whitepapers, simplified BSD for third-party Python include in ./examples. We assert "Fair Use" for all derivative works in all (sub)directories of ./webtemplate/.
