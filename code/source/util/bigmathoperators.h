@@ -60,6 +60,15 @@ inline biguint_t<S> operator/( biguint_t<S> lhs, const mpz_t *rhs ) 		{ lhs/=rhs
 template <int S>
 inline biguint_t<S> operator%( biguint_t<S> lhs, const mpz_t *rhs ) 		{ lhs%=rhs; return(lhs); }
 
+template <int S>
+inline biguint_t<S> operator&( biguint_t<S> lhs, const mpz_t *rhs ) 		{ lhs&=rhs; return(lhs); }
+
+template <int S>
+inline biguint_t<S> operator|( biguint_t<S> lhs, const mpz_t *rhs ) 		{ lhs|=rhs; return(lhs); }
+
+template <int S>
+inline biguint_t<S> operator^( biguint_t<S> lhs, const mpz_t *rhs ) 		{ lhs^=rhs; return(lhs); }
+
 
 //int rhs overloads
 
@@ -96,6 +105,21 @@ inline biguint_t<S> operator/( biguint_t<S> lhs, const int rhs ) 			{ lhs/=rhs; 
 template <int S>
 inline biguint_t<S> operator%( biguint_t<S> lhs, const int rhs ) 			{ lhs%=rhs; return(lhs); }
 
+template <int S>
+inline biguint_t<S> operator<<( biguint_t<S> lhs, const int rhs ) 			{ lhs<<=rhs; return(lhs); }
+
+template <int S>
+inline biguint_t<S> operator>>( biguint_t<S> lhs, const int rhs ) 			{ lhs>>=rhs; return(lhs); }
+
+template <int S>
+inline biguint_t<S> operator&( biguint_t<S> lhs, const int rhs ) 			{ lhs&=rhs; return(lhs); }
+
+template <int S>
+inline biguint_t<S> operator|( biguint_t<S> lhs, const int rhs ) 			{ lhs|=rhs; return(lhs); }
+
+template <int S>
+inline biguint_t<S> operator^( biguint_t<S> lhs, const int rhs ) 			{ lhs^=rhs; return(lhs); }
+
 
 //int lhs overloads
 
@@ -131,6 +155,16 @@ inline biguint_t<S> operator/( const int lhs, const biguint_t<S> &rhs ) 	{ bigui
 
 template <int S>
 inline biguint_t<S> operator%( const int lhs, const biguint_t<S> &rhs ) 	{ biguint_t<S> _lhs(lhs); _lhs%=rhs; return(_lhs); }
+
+template <int S>
+inline biguint_t<S> operator&( const int lhs, biguint_t<S> rhs ) 			{ rhs&=lhs; return(rhs); }
+
+template <int S>
+inline biguint_t<S> operator|( const int lhs, biguint_t<S> rhs ) 			{ rhs|=lhs; return(rhs); }
+
+template <int S>
+inline biguint_t<S> operator^( const int lhs, biguint_t<S> rhs ) 			{ rhs^=lhs; return(rhs); }
+
 
 
 //
@@ -172,6 +206,15 @@ inline bigint_t<S> operator/( bigint_t<S> lhs, const mpz_t *rhs ) 			{ lhs/=rhs;
 template <int S>
 inline bigint_t<S> operator%( bigint_t<S> lhs, const mpz_t *rhs ) 			{ lhs%=rhs; return(lhs); }
 
+template <int S>
+inline bigint_t<S> operator&( bigint_t<S> lhs, const mpz_t *rhs ) 			{ lhs&=rhs; return(lhs); }
+
+template <int S>
+inline bigint_t<S> operator|( bigint_t<S> lhs, const mpz_t *rhs ) 			{ lhs|=rhs; return(lhs); }
+
+template <int S>
+inline bigint_t<S> operator^( bigint_t<S> lhs, const mpz_t *rhs ) 			{ lhs^=rhs; return(lhs); }
+
 
 //int rhs overloads
 
@@ -208,6 +251,21 @@ inline bigint_t<S> operator/( bigint_t<S> lhs, const int rhs ) 				{ lhs/=rhs; r
 template <int S>
 inline bigint_t<S> operator%( bigint_t<S> lhs, const int rhs ) 				{ lhs%=rhs; return(lhs); }
 
+template <int S>
+inline bigint_t<S> operator<<( bigint_t<S> lhs, const int rhs ) 			{ lhs<<=rhs; return(lhs); }
+
+template <int S>
+inline biguint_t<S> operator>>( bigint_t<S> lhs, const int rhs ) 			{ lhs>>=rhs; return(lhs); }
+
+template <int S>
+inline bigint_t<S> operator&( bigint_t<S> lhs, const int rhs ) 				{ lhs&=rhs; return(lhs); }
+\
+template <int S>
+inline bigint_t<S> operator|( bigint_t<S> lhs, const int rhs ) 				{ lhs|=rhs; return(lhs); }
+
+template <int S>
+inline bigint_t<S> operator^( bigint_t<S> lhs, const int rhs ) 				{ lhs^=rhs; return(lhs); }
+
 
 //int lhs overloads
 
@@ -243,6 +301,15 @@ inline bigint_t<S> operator/( const int lhs, const bigint_t<S> &rhs )	 	{ bigint
 
 template <int S>
 inline bigint_t<S> operator%( const int lhs, const bigint_t<S> &rhs )	 	{ bigint_t<S> _lhs(lhs); _lhs%=rhs; return(_lhs); }
+
+template <int S>
+inline bigint_t<S> operator&( const int lhs, bigint_t<S> rhs ) 				{ rhs&=lhs; return(rhs); }
+
+template <int S>
+inline bigint_t<S> operator|( const int lhs, bigint_t<S> rhs ) 				{ rhs|=lhs; return(rhs); }
+
+template <int S>
+inline bigint_t<S> operator^( const int lhs, bigint_t<S> rhs ) 				{ rhs^=lhs; return(rhs); }
 
 
 //

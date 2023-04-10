@@ -10,7 +10,7 @@ Use at your own risk.
 
 **Installation on Debian/Devuan**:  
 apt-get update && apt-get install aptitude  
-aptitude install make gcc g++ gdb libgmp-dev codelite  
+aptitude install make gcc g++ gdb libgmp-dev codelite cppcheck  
 ;git clone the repo
 
 **Execution**:  

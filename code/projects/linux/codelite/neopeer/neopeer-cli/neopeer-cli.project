@@ -43,7 +43,9 @@
         <StartupCommands/>
       </Debugger>
       <PreBuild/>
-      <PostBuild/>
+      <PostBuild>
+        <Command Enabled="yes">cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem --suppress=variableScope ../../../../../source/main.cpp</Command>
+      </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
         <CleanCommand/>
@@ -85,7 +87,9 @@
         <StartupCommands/>
       </Debugger>
       <PreBuild/>
-      <PostBuild/>
+      <PostBuild>
+        <Command Enabled="yes">cppcheck --enable=all --inline-suppr --suppress=missingIncludeSystem --suppress=variableScope ../../../../../source/main.cpp</Command>
+      </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
         <CleanCommand/>

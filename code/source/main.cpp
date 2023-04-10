@@ -52,7 +52,7 @@ int appmain(int argc, char **argv)
 
 #ifndef NDEBUG
 #include <iostream>
-extern "C" int __lsan_is_turned_off() { return 1; }
+//extern "C" int __lsan_is_turned_off() { return 1; }
 #endif
 int main(int argc, char **argv) {
 	int ret = appmain(argc,argv);

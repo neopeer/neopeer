@@ -35,24 +35,19 @@ struct linkitem
 	linkitem *m_next, *m_prev;
 
 #if !defined(NDEBUG) || !defined(DISABLEMEMSAFETY)
-	void operator=( const linkitem &rh ) {
-		char buffer[256];
-		sprintf( buffer, "Potentially unsafe copy of structure. Halting." );
-		throw std::runtime_error(buffer);
+//cppcheck-suppress operatorEqShouldBeLeftUnimplemented
+	linkitem& operator=( const linkitem &rh ) {
+		m_obj = 0;
+		m_next = m_prev = 0;
+		throw std::runtime_error("Potentially unsafe copy of structure. Halting.");
 	}
 
-	linkitem( const linkitem &rh ) {
-		char buffer[256];
-		sprintf( buffer, "Potentially unsafe copy of structure. Halting." );
-		throw std::runtime_error(buffer);
+	linkitem( const linkitem &rh ) : m_obj(0), m_next(0), m_prev(0) {
+		throw std::runtime_error("Potentially unsafe copy of structure. Halting.");
 	}
 #endif
 
-	inline linkitem() {
-		m_obj  = 0;
-		m_next = 0;
-		m_prev = 0;
-	}
+	inline linkitem() : m_obj(0), m_next(0), m_prev(0) {}
 
 	inline void link( T *obj ) {
 		m_obj  = obj;

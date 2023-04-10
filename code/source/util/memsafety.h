@@ -44,6 +44,7 @@ struct __memsafe_pk {
 						linkitem<__memsafe_pk> 	m_item;
 						const std::type_info  	*m_ti;
 
+//cppcheck-suppress noExplicitConstructor
 	inline __memsafe_pk( const std::type_info  *ti ) : m_ti(ti)  	{ m_item.link(this); g_base.add(&m_item); }
 	inline ~__memsafe_pk() 											{ g_base.remove(&m_item); }
 
@@ -51,7 +52,7 @@ struct __memsafe_pk {
 
 		__memsafe_pk *pk;
 		char buffer[256];
-		
+
 		if((pk = __memsafe_pk::g_base.first())) {
 			sprintf( buffer, "Leak detected for type:%s", pk->m_ti->name() );
 			throw std::runtime_error(buffer);
@@ -69,18 +70,14 @@ struct __memsafe_st {
 	__int64_t 		m_memsafeti = (__int64_t)(&typeid(nm));
 	__memsafe_pk 	m_pk = &typeid(nm);
 
-	__memsafe_st() 							{}
-
+	__memsafe_st() 							{}	//cppcheck-suppress noExplicitConstructor
 	__memsafe_st( const __memsafe_st &rh )  {
-		char buffer[256];
-		sprintf( buffer, "Potentially unsafe copy of structure. Halting." );
-		throw std::runtime_error(buffer);
+		throw std::runtime_error("Potentially unsafe copy of structure. Halting.");
 	}
 
-	void operator=( const __memsafe_st &rh ) {
-		char buffer[256];
-		sprintf( buffer, "Potentially unsafe copy of structure. Halting." );
-		throw std::runtime_error(buffer);
+//cppcheck-suppress operatorEqShouldBeLeftUnimplemented
+	__memsafe_st& operator=( const __memsafe_st &rh ) {
+		throw std::runtime_error("Potentially unsafe copy of structure. Halting.");
 	}
 
 	~__memsafe_st() 				{ m_memsafeti=0; }
