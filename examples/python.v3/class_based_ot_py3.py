@@ -98,19 +98,19 @@ class BlockCoder:
 		self.p2mask = p2mask
 		self.p2sigmask = p2sigmask
 		
-	def encode_block(self, block):
-		selection = self.data[block][self.sindex]
-		Bp = (self.B0 * SUM[block] + self.B1 * D1[block] + self.B2 * D2[block]) & self.p2mask
-		Bf = ((self.F0 * SUM[block] + self.F1 * D1[block] + self.F2 * D2[block]) >> self.pow2bits) & self.p2sigmask
+	def encode_block(self, block_index):
+		selection = self.data[block_index][self.sindex.value]
+		Bp = (self.B0 * SUM[block_index] + self.B1 * D1[block_index] + self.B2 * D2[block_index]) & self.p2mask
+		Bf = ((self.F0 * SUM[block_index] + self.F1 * D1[block_index] + self.F2 * D2[block_index]) >> self.pow2bits) & self.p2sigmask
 		hashing_tools_instance = HashingTools()
 		B = (hashing_tools_instance.sigpad(Bp) + Bf) & self.p2sigmask
 		return B
 	
-	def decode_block(self, B, block):
+	def decode_block(self, B, block_index):
 		hashing_tools_instance = HashingTools()
 		decode = (hashing_tools_instance.sigunpad(B) * (pow2 - n)) & self.p2mask
 		decode = (decode * self.unblind) % self.primes
-		if decode != self.data[block][self.sindex]:
+		if decode != self.data[block_index][self.sindex.value]:
 			print("ERROR: Decode error. Stopping.")
 			sys.exit()
 
@@ -288,9 +288,28 @@ class Security:
 		self.pow2sigbits = (self.pow2bits+self.sigbuffbits)
 #tiny class to replace the FastMask below.
 class FastMasks:
-    def __init__(self, pow2, pow2sig):
-        self.p2mask = pow2 - 1
-        self.p2sigmask = pow2sig - 1
+	def __init__(self, pow2, pow2sig):
+		self.p2mask = pow2 - 1
+		self.p2sigmask = pow2sig - 1
+class BlindingsAndInverses:
+	def __init__(self, coset, primelist,primes):
+		self.b = srand(coset)
+		self.blind = powmodCRT(2, self.b, primelist)    # accelerated using CRT (using primelist over primes)
+		self.iblind = inverseCRT(self.blind, primelist)  # accelerated using CRT (using primelist over primes)
+		self.i3 = inverseCRT(3, primelist)              # accelerated using CRT (using primelist over primes)
+		self.unblind = (self.iblind * self.i3) % primes
+class SIndex:
+	def __init__(self, value):
+		self.value = value
+		if self.value == 1:
+			self.s1 = -2
+			self.s2 = 1
+		elif self.value == 2:
+			self.s1 = 1
+			self.s2 = -2
+		else:
+			self.s1 = 1
+			self.s2 = 1
 
 
 #
@@ -363,21 +382,6 @@ p2mask = masks.p2mask
 p2sigmask = masks.p2sigmask
 
 #precompute blindings and inverses
-"""
-b    	 	= srand(coset)
-blind	 	= powmodCRT(2,b,primelist)	#accelerated using CRT (using primelist over primes)
-iblind	 	= inverseCRT(blind,primelist)	#accelerated using CRT (using primelist over primes)
-i3 	 	= inverseCRT(3,primelist)	#accelerated using CRT (using primelist over primes)
-unblind		= (iblind*i3)%primes
-"""
-class BlindingsAndInverses:
-    def __init__(self, coset, primelist,primes):
-        self.b = srand(coset)
-        self.blind = powmodCRT(2, self.b, primelist)    # accelerated using CRT (using primelist over primes)
-        self.iblind = inverseCRT(self.blind, primelist)  # accelerated using CRT (using primelist over primes)
-        self.i3 = inverseCRT(3, primelist)              # accelerated using CRT (using primelist over primes)
-        self.unblind = (self.iblind * self.i3) % primes
-
 blindandinverse = BlindingsAndInverses(coset, primelist, primes)
 #again pulling out variables. Will sort once everything is in class.
 b = blindandinverse.b
@@ -387,11 +391,9 @@ i3 = blindandinverse.i3
 unblind = blindandinverse.unblind
 
 #select content to decode
-sindex 		= srand(3)			
-s1 		= 1
-s2 		= 1
-if sindex==1:   s1=-2
-elif sindex==2: s2=-2
+sindex = SIndex(srand(3))
+s1 = sindex.s1
+s2 = sindex.s2
 
 #fast version of modulus powers in prior sanitycheck
 r0q		= srand(qspace)
