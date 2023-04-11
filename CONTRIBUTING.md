@@ -6,7 +6,7 @@ We request:
 &emsp;*Global variables should be preceded with (g_) to indicate they are globals*  
 &emsp;*Member variables in a class or structure should be preceded with (m_) to indicate they are members*  
 &emsp;*Precede internal/private/protected function names in a class or structure with an indent and an underscore (_)*  
-&emsp;*Favor declarations of most variables used within a function at the top of the function to simplify pentesting*  
+&emsp;*Favor variable declarations at top of function to ease pentesting unless there are benefits in delayed initialization*  
 &emsp;*Avoid std::vectors in favor of in-house optimizations (e.g. automated linked lists / objects from memory banks)*  
 &emsp;*Avoid excessive use of the keyword (auto) if it will force contributors to dig to identify the variable type*  
 &emsp;*Avoid the use of lambdas for anything outside of simple operations, and please well-document what it is doing*  
