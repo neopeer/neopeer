@@ -286,6 +286,11 @@ class Security:
 		self.pow2sig = 2**(pow2bits+self.sigbuffbits)
 		self.MASKH = (self.pow2sig-1)-(self.kbits-1)
 		self.pow2sigbits = (self.pow2bits+self.sigbuffbits)
+#tiny class to replace the FastMask below.
+class FastMasks:
+    def __init__(self, pow2, pow2sig):
+        self.p2mask = pow2 - 1
+        self.p2sigmask = pow2sig - 1
 
 
 #
@@ -352,9 +357,9 @@ F1 = floor( 0.(b1/n) * pow2sig )		;truncated binary representation of traditiona
 F2 = floor( 0.(b2/n) * pow2sig )		;truncated binary representation of traditional divide
 """
 
-#fast masks
-p2mask    = pow2-1
-p2sigmask = pow2sig-1
+masks = FastMasks(pow2, pow2sig)
+p2mask = masks.p2mask
+p2sigmask = masks.p2sigmask
 
 #precompute blindings and inverses
 b    	 	= srand(coset)
