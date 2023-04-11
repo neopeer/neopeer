@@ -358,15 +358,33 @@ F2 = floor( 0.(b2/n) * pow2sig )		;truncated binary representation of traditiona
 """
 
 masks = FastMasks(pow2, pow2sig)
+#again pulling values out for now. Will change it all up later.
 p2mask = masks.p2mask
 p2sigmask = masks.p2sigmask
 
 #precompute blindings and inverses
+"""
 b    	 	= srand(coset)
 blind	 	= powmodCRT(2,b,primelist)	#accelerated using CRT (using primelist over primes)
 iblind	 	= inverseCRT(blind,primelist)	#accelerated using CRT (using primelist over primes)
 i3 	 	= inverseCRT(3,primelist)	#accelerated using CRT (using primelist over primes)
 unblind		= (iblind*i3)%primes
+"""
+class BlindingsAndInverses:
+    def __init__(self, coset, primelist,primes):
+        self.b = srand(coset)
+        self.blind = powmodCRT(2, self.b, primelist)    # accelerated using CRT (using primelist over primes)
+        self.iblind = inverseCRT(self.blind, primelist)  # accelerated using CRT (using primelist over primes)
+        self.i3 = inverseCRT(3, primelist)              # accelerated using CRT (using primelist over primes)
+        self.unblind = (self.iblind * self.i3) % primes
+
+blindandinverse = BlindingsAndInverses(coset, primelist, primes)
+#again pulling out variables. Will sort once everything is in class.
+b = blindandinverse.b
+blind = blindandinverse.blind
+iblind = blindandinverse.iblind
+i3 = blindandinverse.i3
+unblind = blindandinverse.unblind
 
 #select content to decode
 sindex 		= srand(3)			
