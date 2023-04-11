@@ -310,6 +310,29 @@ class SIndex:
 		else:
 			self.s1 = 1
 			self.s2 = 1
+class ModulusPower:
+	def __init__(self, qspace, b, coset, qprime, blind, primes, s1, s2, n):
+		self.qspace = qspace
+		self.b = b
+		self.coset = coset
+		self.qprime = qprime
+		self.blind = blind
+		self.primes = primes
+		self.s1 = s1
+		self.s2 = s2
+		self.n = n
+		
+	def generate_random_numbers(self):
+		r0q = srand(self.qspace)
+		r1q = srand(self.qspace)
+		r2q = srand(self.qspace)
+		r0qpow = powmod(2, (self.b + self.coset*r0q) % (self.qprime-1), self.qprime)
+		r1qpow = powmod(2, (self.b + self.coset*r1q) % (self.qprime-1), self.qprime)
+		r2qpow = powmod(2, (self.b + self.coset*r2q) % (self.qprime-1), self.qprime)
+		b0 = CRT([self.blind, r0qpow], [self.primes, self.qprime])
+		b1 = (CRT([self.blind, r1qpow], [self.primes, self.qprime]) * self.s1) % self.n
+		b2 = (CRT([self.blind, r2qpow], [self.primes, self.qprime]) * self.s2) % self.n
+		return b0, b1, b2
 
 
 #
@@ -396,16 +419,8 @@ s1 = sindex.s1
 s2 = sindex.s2
 
 #fast version of modulus powers in prior sanitycheck
-r0q		= srand(qspace)
-r1q		= srand(qspace)
-r2q		= srand(qspace)
-r0qpow		= powmod(2,(b+coset*r0q)%(qprime-1),qprime)
-r1qpow		= powmod(2,(b+coset*r1q)%(qprime-1),qprime)
-r2qpow		= powmod(2,(b+coset*r2q)%(qprime-1),qprime)
-b0	 	=  CRT([blind,r0qpow],[primes,qprime])
-b1	 	= (CRT([blind,r1qpow],[primes,qprime])*s1) % n
-b2	 	= (CRT([blind,r2qpow],[primes,qprime])*s2) % n
-
+modpowers = ModulusPower(qspace, b, coset, qprime, blind, primes, s1, s2, n)
+b0, b1, b2 = modpowers.generate_random_numbers()
 #prepare carry information
 
 carry_info = PrepCarryInformation(b0, b1, b2, n, pow2sigbits, pow2)
