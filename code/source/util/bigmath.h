@@ -66,6 +66,7 @@ struct mathbankaccess_t {
 		linkitem<bankentry_t>		m_item;
 		bank_t 						*m_bank;
 		T	 						*m_v;
+		bankentry_t					*m_maske;
 		int							m_refcnt;
 
 		inline char *getstringmem() {
@@ -210,7 +211,7 @@ struct biguint_t {
 		inline static void _cbrealloc(mpz_t *v, int size) 				{ mpz_realloc2(v[0],size); 	}
 
 	//user routines
-	#define make(e,v) e=mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::allocnode(); v=e->m_v;
+	#define make(e,v) { e=mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::allocnode(); v=e->m_v; }
 	#define kill(e)   if(e) { e->m_bank->freenode(e); }
 
 		inline void _init() 											{ SAFE() make(b.m_e,b.m_v)   make(b.m_etmp,b.m_vtmp) }
@@ -557,98 +558,106 @@ struct bigmod_t : biguint_t<S> {
 
 		inline biguint_t<S>* const _upcast() { return static_cast<biguint_t<S>*>(this); }
 
-		//smart pointer for modulus
+		// >>> smart pointer management for modulus
 
-			//purpose: set r=(2^pow2bits)-1
+			#define make(ee) { ee=mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::allocnode(); }
+			#define kill(ee) { if(pow2bits>0) { ee->m_maske->m_bank->freenode(ee->m_maske); } ee->m_bank->freenode(ee); }
+				
 			inline bankentry_t* _initpow2mod( bankentry_t *r ) {
 				mpz_t &v=r->m_v[0], &vtmp=this->b.m_vtmp[0];
 				mpz_set_ui( v, 1 );
 				mpz_mul_2exp( vtmp, v, pow2bits );
-				mpz_sub_ui( vtmp, vtmp, 1 );
-				this->b.swaptmp(&r);
+				this->b.swaptmp( &r );
+				make( r->m_maske );
+				mpz_sub_ui( r->m_maske->m_v[0], vtmp, 1 );
+				return r; //r=(2^pow2bits)-1
+			} 
+
+			inline bankentry_t* _refmod( bankentry_t *ptr ) 					{ ptr->m_refcnt++; return(ptr); }
+			inline void 		_derefmod( bankentry_t *ptr ) 					{ if(--ptr->m_refcnt<=0) kill(ptr); }
+			inline void 		_switchmod( bankentry_t **a, bankentry_t *b )	{ b->m_refcnt++; _derefmod(a[0]); a[0]=b; }
+
+			inline bankentry_t* _genmod( const mpz_t *d ) {
+				bankentry_t *r; make(r);
+				if(pow2bits>0) 	r = _initpow2mod(r);
+				else 			mpz_set( r->m_v[0], d );
 				r->m_refcnt=1;
-				return r;
+				return(r);
 			}
 
-		inline bankentry_t* _refmod(   bankentry_t *ptr ) { ptr->m_refcnt++; return(ptr); }
-		inline void 		_derefmod( bankentry_t *ptr ) { if(--ptr->m_refcnt<=0) ptr->m_bank->freenode( ptr ); }
+			inline bankentry_t* _genmod( int d ) {
+				bankentry_t *r; make(r);
+				if(pow2bits>0) 	r = _initpow2mod(r);
+				else 			mpz_set_si( r->m_v[0], d );
+				r->m_refcnt=1;
+				return(r);
+			}
 
-		inline bankentry_t* _genmod( const mpz_t *d ) {
-			bankentry_t *r = mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::allocnode();
-			if(pow2bits>0) return(_initpow2mod(r));;
-			r->m_refcnt=1;
-			mpz_set( r->m_v[0], d );
-			return(r);
-		}
+			#undef make
+			#undef kill
 
-		inline bankentry_t* _genmod( int d ) {
-			bankentry_t *r = mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::allocnode();
-			if(pow2bits>0) return(_initpow2mod(r));
-			r->m_refcnt=1;
-			mpz_set_si( r->m_v[0], d );
-			return(r);
-		}
+		// >>> maintain number in modulus
 
-		//maintain number in modulus
+			inline void _doclean() {
+				if(pow2bits>0) 	this[0]&=m_modptr->m_maske->m_v;	//and mask for pow2 fields
+				else 			this[0]%=m_modptr->m_v;				//actual modulus
+				_markclean();
+			}
 
-		inline void _doclean() {
-			if(pow2bits>0) 	this[0]&=m_modptr->m_v;	//and mask for pow2 fields
-			else 			this[0]%=m_modptr->m_v;	//actual modulus
-			m_modflags|=FLG_CLEAN;
-		}
+			inline void _clean() 		{ if((m_modflags&FLG_CLEAN)==0) _doclean(); }
+			inline void _markclean() 	{ m_modflags|=FLG_CLEAN; }
+			inline void _dirty() 		{ m_modflags&=(~FLG_CLEAN); }
 
-		inline void _dirty() { m_modflags&=(~FLG_CLEAN); }
-		inline void _clean() { if((m_modflags&FLG_CLEAN)==0) _doclean(); }
-
-	inline bigmod_t( 											   ) : biguint_t<S>(),		m_modptr(_genmod(1)),  			 m_modflags(0)	  	 		{}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( 								int d 		   ) : biguint_t<S>(),      m_modptr(_genmod(d)), 			 m_modflags(0)				{}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( 								const mpz_t *d ) : biguint_t<S>(),      m_modptr(_genmod(d)), 			 m_modflags(0)				{}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( int rhs, 						const mpz_t *d ) : biguint_t<S>( rhs ), m_modptr(_genmod(d)), 			 m_modflags(0) 			 	{}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( int rhs, 						int d 		   ) : biguint_t<S>( rhs ), m_modptr(_genmod(d)), 			 m_modflags(0) 			 	{}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( const mpz_t *rhs, 				const mpz_t *d ) : biguint_t<S>( rhs ), m_modptr(_genmod(d)), 			 m_modflags(0) 			 	{}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( const bigmod_t<S,pow2bits> &rhs			   ) : biguint_t<S>( rhs ), m_modptr(_refmod(rhs.m_modptr)), m_modflags(rhs.m_modflags) {}
+	inline bigmod_t( 												   ) : biguint_t<S>(),		m_modptr(_genmod(1)),  			 m_modflags(0)	  	 		{}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( 									int d 		   ) : biguint_t<S>(),      m_modptr(_genmod(d)), 			 m_modflags(0)				{}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( 									const mpz_t *d ) : biguint_t<S>(),      m_modptr(_genmod(d)), 			 m_modflags(0)				{}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( int rhs, 							const mpz_t *d ) : biguint_t<S>( rhs ), m_modptr(_genmod(d)), 			 m_modflags(0) 			 	{}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( int rhs, 							int d 		   ) : biguint_t<S>( rhs ), m_modptr(_genmod(d)), 			 m_modflags(0) 			 	{}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( const mpz_t *rhs, 					const mpz_t *d ) : biguint_t<S>( rhs ), m_modptr(_genmod(d)), 			 m_modflags(0) 			 	{}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( const bigmod_t<S,pow2bits> &rhs			   	   ) : biguint_t<S>( rhs ), m_modptr(_refmod(rhs.m_modptr)), m_modflags(rhs.m_modflags) {}  //cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( int rhs,							bankentry_t *d ) : biguint_t<S>( rhs ), m_modptr(_refmod(d)), 			 m_modflags(0) 				{}  //cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( const mpz_t *rhs, 					bankentry_t *d ) : biguint_t<S>( rhs ), m_modptr(_refmod(d)), 			 m_modflags(0) 				{}
 
 	inline virtual ~bigmod_t() 																{ SAFE() _derefmod(m_modptr); }
 
-	inline const mpz_t* 				operator=( const mpz_t *rhs )						{ SAFE() _dirty(); 				 				    				_upcast()->operator=(rhs); return(rhs);   }
-	inline       bigmod_t<S,pow2bits>& 	operator=( const bigmod_t<S,pow2bits> &rhs )		{ SAFE() _derefmod(m_modptr); m_modptr=_refmod(rhs.m_modptr); m_modflags=rhs.m_modflags; _upcast()->operator=(rhs); return(*this); } //pverload to avoid structure copy errors
+	inline const mpz_t* 				operator=( const mpz_t *rhs )						{ SAFE() _dirty(); 				 				    				    _upcast()->operator=(rhs); return(rhs);   }
+	inline       bigmod_t<S,pow2bits>& 	operator=( const bigmod_t<S,pow2bits> &rhs )		{ SAFE() _switchmod(&m_modptr,rhs.m_modptr); m_modflags=rhs.m_modflags; _upcast()->operator=(rhs); return(*this); } //pverload to avoid structure copy errors
 
-	inline void operator+=( const mpz_t *rhs )  											{ SAFE() _dirty(); _upcast()->_add(rhs); }											//dirty
-	inline void operator-=( const mpz_t *rhs )  											{ SAFE() _dirty(); _upcast()->_sub(rhs); }											//dirty
-	inline void operator*=( const mpz_t *rhs )  											{ SAFE() 		   _upcast()->_mul(rhs); _doclean(); } 								//reduce now
-	//inline void operator/=( const mpz_t *rhs ) 	 											{ SAFE() bigmod_t<S,pow2bits> _rhs(rhs,m_mod); this[0]*=_rhs._inverse(); }			//multiply reduces
-	inline void operator%=( const mpz_t *rhs )  											{ SAFE() _dirty();	_upcast()->_mod(rhs); }											//dirty  (because of negatives)
-	//inline void operator<<=( const mpz_t *rhs )  											{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_mod); this[0]*=_rhs._pow(rhs); }				//multiply reduced
-	//inline void operator>>=( const mpz_t *rhs )  											{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_mod); this[0]*=_rhs._inverse()._pow(rhs); }	//multiply reduced
-	inline void operator&=( const mpz_t *rhs ) 												{ SAFE() _dirty();	_upcast()->_and(rhs); } 										//dirty  (because of negatives)
-	inline void operator|=( const mpz_t *rhs ) 												{ SAFE() _dirty();	_upcast()->_or(rhs); }											//dirty
-	inline void operator^=( const mpz_t *rhs ) 												{ SAFE() _dirty();	_upcast()->_xor(rhs); }											//dirty
+	inline void operator+=( const mpz_t *rhs )  											{ SAFE() _upcast()->_add(rhs); _dirty(); }												//dirty
+	inline void operator-=( const mpz_t *rhs )  											{ SAFE() _upcast()->_sub(rhs); _dirty(); }												//dirty
+	inline void operator*=( const mpz_t *rhs )  											{ SAFE() _upcast()->_mul(rhs); _doclean(); } 											//reduce now
+	inline void operator/=( const mpz_t *rhs ) 	 											{ SAFE() bigmod_t<S,pow2bits> _rhs(rhs); this[0]*=_rhs._inverse(); }					//multiply reduces
+	inline void operator%=( const mpz_t *rhs )  											{ SAFE() _upcast()->_mod(rhs); _dirty(); }												//dirty  (because of negatives)
+	inline void operator<<=( const mpz_t *rhs )  											{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_modptr); this[0]*=_rhs._pow(rhs); }				//multiply reduces
+	inline void operator>>=( const mpz_t *rhs )  											{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_modptr); this[0]*=_rhs._inverse()._pow(rhs); }	//multiply reduces
+	inline void operator&=( const mpz_t *rhs ) 												{ SAFE() _upcast()->_and(rhs); _dirty(); } 												//dirty  (because of negatives)
+	inline void operator|=( const mpz_t *rhs ) 												{ SAFE() _upcast()->_or(rhs);  _dirty(); }												//dirty
+	inline void operator^=( const mpz_t *rhs ) 												{ SAFE() _upcast()->_xor(rhs); _dirty(); }												//dirty
 
-	inline void operator+=( const int rhs ) 												{ SAFE() _dirty();  _upcast()->_add(rhs); }											//dirty
-	inline void operator-=( const int rhs ) 												{ SAFE() _dirty();  _upcast()->_sub(rhs); }											//dirty
-	inline void operator*=( const int rhs ) 												{ SAFE() 			_upcast()->_mul(rhs); _doclean(); }								//reduce now
-	//inline void operator/=( const int rhs ) 	 											{ SAFE() bigmod_t<S,pow2bits> _rhs(rhs,m_mod); this[0]*=_rhs._inverse(); }			//multiply reduces
-	inline void operator%=( const int rhs ) 												{ SAFE() _dirty();	_upcast()->_mod(rhs); }											//dirty  (because of negatives)
-	//inline void operator<<=( const int rhs ) 												{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_mod); this[0]*=_rhs._pow(rhs); }				//multiply reduces
-	//inline void operator>>=( const int rhs ) 												{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_mod); this[0]*=_rhs._inverse()._pow(rhs); }	//multiply reduces
-	inline void operator&=( const int rhs ) 												{ SAFE() _dirty();	_upcast()->_and(rhs); } 										//dirty (because of negatives)
-	inline void operator|=( const int rhs ) 												{ SAFE() _dirty();	_upcast()->_or(rhs); }											//dirty
-	inline void operator^=( const int rhs ) 												{ SAFE() _dirty();	_upcast()->_xor(rhs); }											//dirty
+	inline void operator+=( const int rhs ) 												{ SAFE() _upcast()->_add(rhs); _dirty(); }												//dirty
+	inline void operator-=( const int rhs ) 												{ SAFE() _upcast()->_sub(rhs); _dirty(); }												//dirty
+	inline void operator*=( const int rhs ) 												{ SAFE() _upcast()->_mul(rhs); _doclean(); }											//reduce now
+	inline void operator/=( const int rhs ) 	 											{ SAFE() bigmod_t<S,pow2bits> _rhs(rhs,m_modptr); this[0]*=_rhs._inverse(); }			//multiply reduces
+	inline void operator%=( const int rhs ) 												{ SAFE() _upcast()->_mod(rhs); _dirty(); }												//dirty  (because of negatives)
+	inline void operator<<=( const int rhs ) 												{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_modptr); this[0]*=_rhs._pow(rhs); }				//multiply reduces
+	inline void operator>>=( const int rhs ) 												{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_modptr); this[0]*=_rhs._inverse()._pow(rhs); }	//multiply reduces
+	inline void operator&=( const int rhs ) 												{ SAFE() _upcast()->_and(rhs); _dirty(); } 												//dirty (because of negatives)
+	inline void operator|=( const int rhs ) 												{ SAFE() _upcast()->_or(rhs);  _dirty(); }												//dirty
+	inline void operator^=( const int rhs ) 												{ SAFE() _upcast()->_xor(rhs); _dirty(); }												//dirty
 
 	inline 		 	operator const mpz_t*()													{ SAFE() _clean(); return (this->b.m_v); }
 	inline explicit operator unsigned int() 		 										{ SAFE() _clean(); return (unsigned int)(_upcast()[0]); }
 	inline explicit operator int() 				 											{ SAFE() _clean(); return (int)(_upcast()[0]); }
 	inline explicit operator const char*()													{ SAFE() _clean(); return (const char*)(_upcast()[0]); }
 
-		inline bigmod_t<S,pow2bits>& _inverse() 												{ mpz_invert( this->b.m_vtmp[0], this->b.m_v[0], m_modptr->m_v[0] ); 		this->b.swap(); return(*this); }
-		inline bigmod_t<S,pow2bits>& _pow( const mpz_t *rhs )									{ mpz_powm( this->b.m_vtmp[0], this->b.m_v[0], rhs[0], m_modptr->m_v[0] );  this->b.swap(); return(*this); }
-		inline bigmod_t<S,pow2bits>& _pow( int rhs )											{ mpz_powm_ui( this->b.m_vtmp[0], this->b.m_v[0], rhs, m_modptr->m_v[0] );  this->b.swap(); return(*this); }
+		inline bigmod_t<S,pow2bits>& _inverse() 												{ mpz_invert(  this->b.m_vtmp[0], this->b.m_v[0], 		  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
+		inline bigmod_t<S,pow2bits>& _pow( const mpz_t *rhs )									{ mpz_powm(    this->b.m_vtmp[0], this->b.m_v[0], rhs[0], m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
+		inline bigmod_t<S,pow2bits>& _pow( int rhs )											{ mpz_powm_ui( this->b.m_vtmp[0], this->b.m_v[0], rhs, 	  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
 
 	inline bigmod_t<S,pow2bits> inverse() 													{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._inverse()); }
 	inline bigmod_t<S,pow2bits> pow( const mpz_t *rhs )										{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._pow(rhs)); }
 	inline bigmod_t<S,pow2bits> pow( int rhs )												{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._pow(rhs)); }
 
-	//TODO: fix pow() for the pow2 modulus fields
 	//TODO: check safety of implicit cast to base type (without virtual destructor) as return value from a function
 	//TODO: optimized chinese remainder theorem
 };
