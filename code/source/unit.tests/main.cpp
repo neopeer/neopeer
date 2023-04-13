@@ -71,5 +71,5 @@ namespace testunits {
 		testbigmath();
 	}
 	
-};
+}
 
