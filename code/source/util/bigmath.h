@@ -19,6 +19,17 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+//Performance notes for upgrades:
+//	- Prefer implicit constructor assignment for values
+//	- Avoid the use of virtual declaration of functions in structures
+//	- Prefer non-const return values *if* it's safe, does not introduce ambiguity, and does not cause an unnecessary implicit copy
+//	- Prefer const input parameters when they will be unmodified by a function (required for assignment operator functions).
+//	- Prerer const function declaration where possible 
+//	- DO NOT override const warnings with a cast to eliminate const-ness, find a way to optimize your code without violating const
+//	- Prefer use of the address operator & where possible for anything other than an integer
+//	- Explicitly define global arithmetic operators with GMP & standard types to curate optimal operation (optimal copies, etc...)
+//	- Take advantages of the pre-allocated temporary memory & swap() operation provided if it will be faster for a GMP operation
+
 #ifndef BIGMATH_H
 #define BIGMATH_H
 
@@ -547,13 +558,14 @@ typedef bigfrac_t<16384> bigfrac16384_t;
 
 //extra structure to allow for differential in template parameter counts *and* 
 //	to allow non-virtual function performance in base class - most of this is 
-//	here to avoid violating const-ness rules on edge case assignments in the 
-//	base structure without the aforementioned performance drawback of a full 
-//	virtual base
+//	here to avoid violating const-ness rules on edge case assignments (e.g.
+//	finalize a modular number before copying to uint) without the aforementioned 
+//	performance degradation of a full virtual base
+
 template <int S>
 struct bigmodbase_t : biguint_t<S> {
 
-	//avoid the need for a virtual base class to support edge cases of finalizing modular numbers on conversion
+	//callback declaration for base structure
 	typedef void (*f_copyraw_tp)(const void*,mpz_t*);
 	f_copyraw_tp f_copyraw;
 
@@ -642,8 +654,12 @@ struct bigmod_t : bigmodbase_t<S> {
 		// >>> maintain number in modulus
 
 			inline void _cleantarget( mpz_t *rhs ) const {
-				if(pow2bits>0)	mpz_and( rhs[0], this->b.m_v[0], m_modptr->m_maske->m_v[0] );
-				else			mpz_mod( rhs[0], this->b.m_v[0], m_modptr->m_v[0] );
+				if((m_modflags&FLG_CLEAN)==0) {
+					if(pow2bits>0)	mpz_and( rhs[0], this->b.m_v[0], m_modptr->m_maske->m_v[0] );
+					else			mpz_mod( rhs[0], this->b.m_v[0], m_modptr->m_v[0] );
+					return;
+				}
+				mpz_set( rhs[0], this->b.m_v[0] );
 			}
 
 			inline void _doclean() {
@@ -714,10 +730,10 @@ struct bigmod_t : bigmodbase_t<S> {
 	inline bigmod_t<S,pow2bits> pow( int rhs )												{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._pow(rhs)); }
 
 	inline 			void 			changemod( const mpz_t *rhs ) 							{ SAFE() _changemod(&m_modptr,_genmod(rhs)); _dirty(); }
-	inline 			void 			changemod( const bankentry_t *rhs ) 					{ SAFE() _changemod(&m_modptr,rhs); _dirty(); }
+	inline 			void 			changemod( bankentry_t *rhs ) 							{ SAFE() _changemod(&m_modptr,rhs); _dirty(); }
 	inline 		 	void 			copyraw( mpz_t *rhs )							  const { SAFE() _cleantarget(rhs); }
-	inline const 	bankentry_t*	getmod() 										  const { SAFE() return(m_modptr); }
-	inline const 	mpz_t*			getmodraw() 									  const { SAFE() return(m_modptr->m_v); }
+	inline 		 	bankentry_t*	getmod() 										  const { SAFE() return(m_modptr); }
+	inline 			mpz_t*			getmodraw() 									  const { SAFE() return(m_modptr->m_v); }
 
 	//optimized chinese remainder theorem - function requires sz>0
 	static biguint_t<S> crt( bigmod_t *v, int sz, bigmod_t *scratch ) {
