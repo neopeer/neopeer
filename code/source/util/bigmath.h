@@ -223,9 +223,9 @@ struct biguint_t {
 	//
 
 		//callbacks for the mathbank
-		inline static void _cbinit(mpz_t *v, int size) 	 				{ mpz_init2(v[0],size); 	}
-		inline static void _cbdeinit(mpz_t *v, int size) 				{ mpz_clear(v[0]); 		 	}
-		inline static void _cbrealloc(mpz_t *v, int size) 				{ mpz_realloc2(v[0],size); 	}
+		inline static void _cbinit(mpz_t *v, _UNUSED_ int size) 	 		{ mpz_init2(v[0],size); 	}
+		inline static void _cbdeinit(mpz_t *v, _UNUSED_ int size) 			{ mpz_clear(v[0]); 		 	}
+		inline static void _cbrealloc(mpz_t *v, _UNUSED_ int size) 			{ mpz_realloc2(v[0],size); 	}
 
 	//user routines
 	#define make(e,v) { e=mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::allocnode(); v=e->m_v; }
@@ -381,7 +381,7 @@ struct bigint_t : biguint_t<S> {
 	// routines
 	//
 
-		inline biguint_t<S>* const _upcast() { return static_cast<biguint_t<S>*>(this); }
+		inline biguint_t<S>* _upcast() { return static_cast<biguint_t<S>*>(this); }
 
 	inline bigint_t() : biguint_t<S>()									{}							//cppcheck-suppress noExplicitConstructor
 	inline bigint_t( int val ) : biguint_t<S>() 		 				{ this->operator=(val); }	//cppcheck-suppress noExplicitConstructor
@@ -453,9 +453,9 @@ struct bigfrac_t {
 	//
 
 		//callbacks for the mathbank
-		inline static void _cbinit(mpq_t *v, int size) 	 				{ mpq_init(v[0]); }
-		inline static void _cbdeinit(mpq_t *v, int size)  				{ mpq_clear(v[0]); }
-		inline static void _cbrealloc(mpq_t *v, int size) 				{ mpq_clear(v[0]); mpq_init(v[0]); }
+		inline static void _cbinit(mpq_t *v, _UNUSED_ int size) 	 	{ mpq_init(v[0]); }
+		inline static void _cbdeinit(mpq_t *v, _UNUSED_ int size)  		{ mpq_clear(v[0]); }
+		inline static void _cbrealloc(mpq_t *v, _UNUSED_ int size) 		{ mpq_clear(v[0]); mpq_init(v[0]); }
 
 	//user routines
 	#define make(e,v) e=mathbankaccess_t<mpq_t,S,bigfrac_t<S>>::bank_t::allocnode(); v=e->m_v;
@@ -608,7 +608,7 @@ struct bigmod_t : bigmodbase_t<S> {
 	// routines
 	//
 
-		inline biguint_t<S>* const _upcast() { return static_cast<biguint_t<S>*>(this); }
+		inline biguint_t<S>* _upcast() { return static_cast<biguint_t<S>*>(this); }
 
 		// >>> callback interface for simulated virtual functions
 

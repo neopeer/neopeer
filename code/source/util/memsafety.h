@@ -22,6 +22,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #ifndef MEMSAFE_H
 #define MEMSAFE_H
 
+#define _UNUSED_ __attribute__((unused))
+
 #if defined(NDEBUG) || defined(DISABLEMEMSAFETY)
 
 #define SAFEHEAD(nm)

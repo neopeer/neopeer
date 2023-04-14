@@ -34,7 +34,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #endif
 
 #ifdef TESTUNITS
-int appmain(int argc, char **argv)
+int appmain(_UNUSED_ int argc, _UNUSED_ char **argv)
 {
 	testunits::start();	
 
@@ -43,7 +43,7 @@ int appmain(int argc, char **argv)
 	return(0);
 }
 #else
-int appmain(int argc, char **argv)
+int appmain(_UNUSED_ int argc, _UNUSED_ char **argv)
 {
 	printf("Done.");
 	return(0);

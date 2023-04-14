@@ -36,13 +36,13 @@ struct linkitem
 
 #if !defined(NDEBUG) || !defined(DISABLEMEMSAFETY)
 //cppcheck-suppress operatorEqShouldBeLeftUnimplemented
-	linkitem& operator=( const linkitem &rh ) {
+	linkitem& operator=( _UNUSED_ const linkitem &rh ) {
 		m_obj = 0;
 		m_next = m_prev = 0;
 		throw std::runtime_error("Potentially unsafe copy of structure. Halting.");
 	}
 
-	linkitem( const linkitem &rh ) : m_obj(0), m_next(0), m_prev(0) {
+	linkitem( _UNUSED_ const linkitem &rh ) : m_obj(0), m_next(0), m_prev(0) {
 		throw std::runtime_error("Potentially unsafe copy of structure. Halting.");
 	}
 #endif
