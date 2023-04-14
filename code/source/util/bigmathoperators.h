@@ -414,5 +414,147 @@ template <int S>
 inline bigfrac_t<S> operator/( const double &lhs, const bigfrac_t<S> &rhs )	{ bigfrac_t<S> _lhs(lhs); _lhs/=rhs; return(_lhs); }
 
 
+//
+// bigmod overloads
+//
+
+template <int S, int pow2bits>
+inline bool operator!=( bigmod_t<S,pow2bits> &lhs, const mpz_t *rhs ) 					{ lhs._clean(); return !lhs._eq(rhs); }
+
+template <int S, int pow2bits>
+inline bool operator==( bigmod_t<S,pow2bits> &lhs, const mpz_t *rhs ) 					{ lhs._clean(); return lhs._eq(rhs);  }
+
+template <int S, int pow2bits>
+inline bool operator>( bigmod_t<S,pow2bits> &lhs, const mpz_t *rhs ) 					{ lhs._clean(); return lhs._gt(rhs);  }
+
+template <int S, int pow2bits>
+inline bool operator>=( bigmod_t<S,pow2bits> &lhs, const mpz_t *rhs ) 					{ lhs._clean(); return lhs._gte(rhs);  }
+
+template <int S, int pow2bits>
+inline bool operator<( bigmod_t<S,pow2bits> &lhs, const mpz_t *rhs ) 					{ lhs._clean(); return lhs._lt(rhs);  }
+
+template <int S, int pow2bits>
+inline bool operator<=( bigmod_t<S,pow2bits> &lhs, const mpz_t *rhs ) 					{ lhs._clean(); return lhs._lte(rhs);  }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator+( bigmod_t<S,pow2bits> lhs, const mpz_t *rhs ) 	{ lhs+=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator-( bigmod_t<S,pow2bits> lhs, const mpz_t *rhs ) 	{ lhs-=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator*( bigmod_t<S,pow2bits> lhs, const mpz_t *rhs ) 	{ lhs*=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator/( bigmod_t<S,pow2bits> lhs, const mpz_t *rhs ) 	{ lhs/=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator%( bigmod_t<S,pow2bits> lhs, const mpz_t *rhs ) 	{ lhs%=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator&( bigmod_t<S,pow2bits> lhs, const mpz_t *rhs ) 	{ lhs&=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator|( bigmod_t<S,pow2bits> lhs, const mpz_t *rhs ) 	{ lhs|=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator^( bigmod_t<S,pow2bits> lhs, const mpz_t *rhs ) 	{ lhs^=rhs; return(lhs); }
+
+
+//int rhs overloads
+
+template <int S, int pow2bits>
+inline bool operator!=( bigmod_t<S,pow2bits> &lhs, const int rhs ) 						{ lhs._clean(); return !lhs._eq(rhs);  }
+
+template <int S, int pow2bits>
+inline bool operator==( bigmod_t<S,pow2bits> &lhs, const int rhs ) 						{ lhs._clean(); return lhs._eq(rhs);  }
+
+template <int S, int pow2bits>
+inline bool operator>( bigmod_t<S,pow2bits> &lhs, const int rhs ) 						{ lhs._clean(); return lhs._gt(rhs);  }
+
+template <int S, int pow2bits>
+inline bool operator>=( bigmod_t<S,pow2bits> &lhs, const int rhs ) 						{ lhs._clean(); return lhs._gte(rhs);  }
+
+template <int S, int pow2bits>
+inline bool operator<( bigmod_t<S,pow2bits> &lhs, const int rhs ) 						{ lhs._clean(); return lhs._lt(rhs);  }
+
+template <int S, int pow2bits>
+inline bool operator<=( bigmod_t<S,pow2bits> &lhs, const int rhs ) 						{ lhs._clean(); return lhs._lte(rhs);  }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator+( bigmod_t<S,pow2bits> lhs, const int rhs ) 		{ lhs+=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator-( bigmod_t<S,pow2bits> lhs, const int rhs ) 		{ lhs-=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator*( bigmod_t<S,pow2bits> lhs, const int rhs ) 		{ lhs*=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator/( bigmod_t<S,pow2bits> lhs, const int rhs ) 		{ lhs/=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator%( bigmod_t<S,pow2bits> lhs, const int rhs ) 		{ lhs%=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator<<( bigmod_t<S,pow2bits> lhs, const int rhs ) 		{ lhs<<=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator>>( bigmod_t<S,pow2bits> lhs, const int rhs ) 		{ lhs>>=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator&( bigmod_t<S,pow2bits> lhs, const int rhs ) 		{ lhs&=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator|( bigmod_t<S,pow2bits> lhs, const int rhs ) 		{ lhs|=rhs; return(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator^( bigmod_t<S,pow2bits> lhs, const int rhs ) 		{ lhs^=rhs; return(lhs); }
+
+
+//int lhs overloads
+
+template <int S, int pow2bits>
+inline bool operator!=( const int lhs, bigmod_t<S,pow2bits> &rhs ) 						{ rhs._clean(); return !rhs._eq(lhs); }
+
+template <int S, int pow2bits>
+inline bool operator==( const int lhs, bigmod_t<S,pow2bits> &rhs ) 						{ rhs._clean(); return rhs._eq(lhs); }
+
+template <int S, int pow2bits>
+inline bool operator>( const int lhs, bigmod_t<S,pow2bits> &rhs ) 						{ rhs._clean(); return rhs._lt(lhs); }
+
+template <int S, int pow2bits>
+inline bool operator>=( const int lhs, bigmod_t<S,pow2bits> &rhs ) 						{ rhs._clean(); return rhs._lte(lhs);  }
+
+template <int S, int pow2bits>
+inline bool operator<( const int lhs, bigmod_t<S,pow2bits> &rhs ) 						{ rhs._clean(); return rhs._gt(lhs); }
+
+template <int S, int pow2bits>
+inline bool operator<=( const int lhs, bigmod_t<S,pow2bits> &rhs ) 						{ rhs._clean(); return rhs._gte(lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator+( const int lhs, bigmod_t<S,pow2bits> rhs ) 		{ rhs+=lhs; return(rhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator-( const int lhs, bigmod_t<S,pow2bits> rhs ) 		{ rhs._neg(); rhs+=lhs; return(rhs); }
+	
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator*( const int lhs, bigmod_t<S,pow2bits> rhs ) 		{ rhs*=lhs; return(rhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator/( const int lhs, const bigmod_t<S,pow2bits> &rhs ) { biguint_t<S> _lhs(lhs); _lhs/=rhs; return(_lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator%( const int lhs, const bigmod_t<S,pow2bits> &rhs ) { biguint_t<S> _lhs(lhs); _lhs%=rhs; return(_lhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator&( const int lhs, bigmod_t<S,pow2bits> rhs ) 		{ rhs&=lhs; return(rhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator|( const int lhs, bigmod_t<S,pow2bits> rhs ) 		{ rhs|=lhs; return(rhs); }
+
+template <int S, int pow2bits>
+inline bigmod_t<S,pow2bits> operator^( const int lhs, bigmod_t<S,pow2bits> rhs ) 		{ rhs^=lhs; return(rhs); }
+
 #endif
 

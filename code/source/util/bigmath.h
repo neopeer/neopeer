@@ -20,11 +20,11 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 */
 
 //Performance notes for upgrades:
-//	- Prefer implicit constructor assignment for values
+//	- Prefer implicit constructor initialization for member values
 //	- Avoid the use of virtual declaration of functions in structures
-//	- Prefer non-const return values *if* it's safe, does not introduce ambiguity, and does not cause an unnecessary implicit copy
-//	- Prefer const input parameters when they will be unmodified by a function (required for assignment operator functions).
-//	- Prerer const function declaration where possible 
+//	- Prefer non-const return values *if* it's safe, does not confuse compiler with ambiguity, and does not cause an unnecessary implicit copy
+//	- Prefer const input parameters when they will be unedited by a function (required for assignment operator functions).
+//	- Preter const function declaration where possible 
 //	- DO NOT override const warnings with a cast to eliminate const-ness, find a way to optimize your code without violating const
 //	- Prefer use of the address operator & where possible for anything other than an integer
 //	- Explicitly define global arithmetic operators with GMP & standard types to curate optimal operation (optimal copies, etc...)
@@ -326,6 +326,7 @@ struct biguint_t {
 	inline void operator^=( const int rhs ) 								{ _xor(rhs); }
 
 	inline 		 			 	   mpz_t* raw()						const 	{ SAFE() return(b.m_v); 					}
+	inline		 			 const 	char* str()						const	{ SAFE() return((const char*)this[0]); 		}
 	inline 			operator const mpz_t*()							const	{ SAFE() return(b.m_v); 					}
 	inline explicit operator 	   double() 						const 	{ SAFE() return(mpz_get_d(b.m_v[0]));  		}
 	inline explicit operator 	   unsigned int() 					const 	{ SAFE() return(mpz_get_ui(b.m_v[0]));   	}
@@ -416,6 +417,7 @@ struct bigint_t : biguint_t<S> {
 
 	inline 		 			 		biguint_t<S>& base()		const	{ SAFE() return _upcast()[0]; 								}
 	inline 		 			 	 	mpz_t* raw()				const 	{ SAFE() return this->b.m_v; 								}
+	inline		 			 const 	char* str()					const	{ SAFE() return((const char*)this[0]); 						}
 	inline explicit operator 		biguint_t<S>*()				const 	{ SAFE() return _upcast(); 									}
 	inline explicit operator 		unsigned int() 				const 	{ SAFE() return((unsigned int)mpz_get_si(this->b.m_v[0]));	}	
 	inline explicit operator 		int() 						const 	{ SAFE() return(mpz_get_si(this->b.m_v[0]));  	 			}	
@@ -511,6 +513,7 @@ struct bigfrac_t {
 	inline void operator/=( const double &rhs ) 						{ _div(bigfrac_t<S>(rhs)); }
 
 	inline 		 			 		mpq_t* raw()				const	{ SAFE() return(b.m_v); 							}
+	inline		 			 const 	char* str()					const	{ SAFE() return((const char*)this[0]); 				}
 	inline		 	operator const 	mpq_t* ()					const	{ SAFE() return(b.m_v); 							}
 	inline explicit operator 		double () 					const 	{ SAFE() return(mpq_get_d(b.m_v[0]));  				}
 	inline explicit operator 		unsigned int () 			const 	{ SAFE() return((unsigned int)mpq_get_d(b.m_v[0])); }
@@ -711,13 +714,14 @@ struct bigmod_t : bigmodbase_t<S> {
 	inline void operator|=( const int rhs ) 												{ SAFE() _clean(); _upcast()->_or(rhs);  _dirty(); }									//dirty
 	inline void operator^=( const int rhs ) 												{ SAFE() _clean(); _upcast()->_xor(rhs); _dirty(); }									//dirty
 
-	inline 		 			 		biguint_t<S>& base()									{ SAFE() _clean(); return _upcast()[0]; }
-	inline 		 			 	 	mpz_t* raw()											{ SAFE() _clean(); return (this->b.m_v); }
-	inline 		 	operator const 	mpz_t*()												{ SAFE() _clean(); return (this->b.m_v); }
-	inline explicit operator 		biguint_t<S>*()											{ SAFE() _clean(); return _upcast(); }
+	inline 		 			 		biguint_t<S>& base()									{ SAFE() _clean(); return _upcast()[0]; 				}
+	inline 		 			 	 	mpz_t* raw()											{ SAFE() _clean(); return (this->b.m_v); 				}
+	inline		 			 const 	char* str()												{ SAFE() _clean(); return((const char*)this[0]); 		}
+	inline 		 	operator const 	mpz_t*()												{ SAFE() _clean(); return (this->b.m_v); 				}
+	inline explicit operator 		biguint_t<S>*()											{ SAFE() _clean(); return _upcast(); 					}
 	inline explicit operator 		unsigned int() 		 									{ SAFE() _clean(); return (unsigned int)(_upcast()[0]); }
-	inline explicit operator 		int() 				 									{ SAFE() _clean(); return (int)(_upcast()[0]); }
-	inline explicit operator const 	char*()													{ SAFE() _clean(); return (const char*)(_upcast()[0]); }
+	inline explicit operator 		int() 				 									{ SAFE() _clean(); return (int)(_upcast()[0]); 			}
+	inline explicit operator const 	char*()													{ SAFE() _clean(); return (const char*)(_upcast()[0]); 	}
 
 	//additional modular specific routines
 
@@ -726,8 +730,8 @@ struct bigmod_t : bigmodbase_t<S> {
 		inline bigmod_t<S,pow2bits>& _pow( int rhs )											{ mpz_powm_ui( this->b.m_vtmp[0], this->b.m_v[0], rhs, 	  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
 
 	inline bigmod_t<S,pow2bits> inverse() 													{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._inverse()); }
-	inline bigmod_t<S,pow2bits> pow( const mpz_t *rhs )										{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._pow(rhs)); }
-	inline bigmod_t<S,pow2bits> pow( int rhs )												{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._pow(rhs)); }
+	inline bigmod_t<S,pow2bits> pow( const mpz_t *rhs )										{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._pow(rhs));  }
+	inline bigmod_t<S,pow2bits> pow( int rhs )												{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._pow(rhs));  }
 
 	inline 			void 			changemod( const mpz_t *rhs ) 							{ SAFE() _changemod(&m_modptr,_genmod(rhs)); _dirty(); }
 	inline 			void 			changemod( bankentry_t *rhs ) 							{ SAFE() _changemod(&m_modptr,rhs); _dirty(); }
