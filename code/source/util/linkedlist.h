@@ -22,6 +22,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #ifndef LINKEDLIST_H
 #define LINKEDLIST_H
 
+#include "memsafety.h"
+
 #if !defined(NDEBUG) || !defined(DISABLEMEMSAFETY)
 #include <stdexcept>
 #endif
