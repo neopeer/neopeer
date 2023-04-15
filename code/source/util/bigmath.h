@@ -25,10 +25,14 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 //	- Prefer non-const return values *if* it's safe, does not confuse compiler with ambiguity, and does not cause an unnecessary implicit copy
 //	- Prefer const input parameters when they will be unedited by a function (required for assignment operator functions).
 //	- Preter const function declaration where possible 
-//	- DO NOT override const warnings with a cast to eliminate const-ness, find a way to optimize your code without violating const
-//	- Prefer use of the address operator & where possible for anything other than an integer
+//	- Prefer use of the address accessing (&) for input parameters where possible for anything other than integers
 //	- Explicitly define global arithmetic operators with GMP & standard types to curate optimal operation (optimal copies, etc...)
 //	- Take advantages of the pre-allocated temporary memory & swap() operation provided if it will be faster for a GMP operation
+//Style: 
+//	- Do not override const warnings with a cast to eliminate const-ness, find a way to optimize your code without violating const
+//	- User-accessible non-operator functions that return internal data types 
+//		with accessible members/functions are returned by reference / all others by pointer
+//  - Global operators givn precedence to type on lefthand side e.g. uint_t * mod_t = uint_t
 
 #ifndef BIGMATH_H
 #define BIGMATH_H
@@ -88,6 +92,8 @@ struct mathbankaccess_t {
 			return(handle);
 		}
 
+		inline T *raw() { return(m_v); }
+
 	};
 
 	struct bank_t {
@@ -95,7 +101,7 @@ struct mathbankaccess_t {
 		SAFEHEAD(bank_t)
 
 		static const int BANKSIZE = BIGMATHBANKSIZE;
-
+		
 		const unsigned int C_ALLOC_LIMBS = (S/mp_bits_per_limb+(S%mp_bits_per_limb==0?0:1)+1);
 		const unsigned int C_ALLOC_BITS  = C_ALLOC_LIMBS*mp_bits_per_limb;
 
@@ -202,13 +208,24 @@ thread_local linkbase<typename mathbankaccess_t<T,S,CBT>::bank_t> mathbankaccess
 template <typename T, int S, typename CBT>
 thread_local linkbase<typename mathbankaccess_t<T,S,CBT>::bank_t> mathbankaccess_t<T,S,CBT>::bank_t::g_freebase;
 
+//
+// helper routines to minimize template code and optimize resulting assembly
+//
+
+namespace _bigmath_compile {
+	constexpr bool 			isneg( int a ) 			{ return(a<0?true:false); 			}
+	constexpr unsigned int 	constabs( int a ) 		{ return(a<0?-a:a); 				}
+	constexpr unsigned int 	modcastszup( int a ) 	{ return constabs(a)*3; 			}
+	constexpr unsigned int 	modcastszdown( int a ) 	{ return constabs(a)/3; 			}
+	constexpr unsigned int	modpow2calc( int a ) 	{ return isneg(a)?constabs(a):0; 	}
+}
 
 //
 // uint code
 //
 
 template <int S>
-struct bigmodbase_t;
+struct bigmod_t;
 
 template <int S>
 struct biguint_t {
@@ -238,16 +255,32 @@ struct biguint_t {
 	#undef make
 	#undef kill
 
+	#define _S1 S
+	#define _S2 -S
+	#define _S3 _bigmath_compile::modcastszdown(S)
+	#define _S4 -_bigmath_compile::modcastszdown(S)
+
 	inline biguint_t()  													{ _init(); }						//cppcheck-suppress noExplicitConstructor
 	inline biguint_t( int val )  											{ _init(); this->operator=(val); }	//cppcheck-suppress noExplicitConstructor
 	inline biguint_t( const mpz_t *rhs ) 		 							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
 	inline biguint_t( const biguint_t &rhs ) 								{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
-	inline biguint_t( const bigmodbase_t<S> &rhs )							{ _init(); this->operator=(rhs); }
+	inline biguint_t( const bigmod_t<_S1> &rhs )							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
+	inline biguint_t( const bigmod_t<_S2> &rhs )							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
+	inline biguint_t( const bigmod_t<_S3> &rhs )							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
+	inline biguint_t( const bigmod_t<_S4> &rhs )							{ _init(); this->operator=(rhs); }
 
 	inline 		 int 				operator=( int val ) 					{ SAFE() mpz_set_ui(b.m_v[0],(unsigned long int)val); return(val); }
 	inline 	     mpz_t* 			operator=( const mpz_t *rhs )			{ SAFE() mpz_set(b.m_v[0],rhs[0]);  return(b.m_v); }
 	inline 	 	 biguint_t<S> & 	operator=( const biguint_t<S> &rhs )	{ SAFE() mpz_set(b.m_v[0],rhs.b.m_v[0]); return(*this); }				//overload to avoid structure copy errors
-	inline const bigmodbase_t<S> & 	operator=( const bigmodbase_t<S> &rhs ) { SAFE() rhs.copyraw(b.m_v); return(rhs); }								//overload to avoid structure copy errors
+	inline const bigmod_t<_S1> & 	operator=( const bigmod_t<_S1> &rhs ) 	{ SAFE() rhs.copyraw(b.m_v); return(rhs); }								//overload to avoid structure copy errors
+	inline const bigmod_t<_S2> & 	operator=( const bigmod_t<_S2> &rhs ) 	{ SAFE() rhs.copyraw(b.m_v); return(rhs); }								//overload to avoid structure copy errors
+	inline const bigmod_t<_S3> & 	operator=( const bigmod_t<_S3> &rhs ) 	{ SAFE() rhs.copyraw(b.m_v); return(rhs); }								//overload to avoid structure copy errors
+	inline const bigmod_t<_S4> & 	operator=( const bigmod_t<_S4> &rhs ) 	{ SAFE() rhs.copyraw(b.m_v); return(rhs); }								//overload to avoid structure copy errors
+
+	#undef _S1 
+	#undef _S2 
+	#undef _S3 
+	#undef _S4 
 
 		inline void _neg()		 											{ SAFE() mpz_neg(b.m_v[0],b.m_v[0]); }
 		inline void _abs()		 											{ SAFE() mpz_abs(b.m_v[0],b.m_v[0]); }
@@ -561,40 +594,16 @@ typedef bigfrac_t<16384> bigfrac16384_t;
 // modular code
 //
 
-//extra structure to allow for differential in template parameter counts *and* 
-//	to allow non-virtual function performance in base class - most of this is 
-//	here to avoid violating const-ness rules on edge case assignments (e.g.
-//	finalize a modular number before copying to uint) without the aforementioned 
-//	performance degradation of a full virtual base
-
-template <int S>
-struct bigmodbase_t : biguint_t<S> {
-
-	//callback declaration for base structure
-	typedef void (*f_copyraw_tp)(const void*,mpz_t*);
-	f_copyraw_tp f_copyraw;
-
-	//cppcheck-suppress noExplicitConstructor
-	inline bigmodbase_t( 						  f_copyraw_tp cb ) : biguint_t<S>(), 		f_copyraw(cb) {}	//cppcheck-suppress noExplicitConstructor
-	inline bigmodbase_t( int val, 				  f_copyraw_tp cb ) : biguint_t<S>( val ), 	f_copyraw(cb) {}	//cppcheck-suppress noExplicitConstructor
-	inline bigmodbase_t( const mpz_t *rhs, 		  f_copyraw_tp cb ) : biguint_t<S>( rhs ), 	f_copyraw(cb) {}	//cppcheck-suppress noExplicitConstructor
-	inline bigmodbase_t( const biguint_t<S> &rhs, f_copyraw_tp cb ) : biguint_t<S>( rhs ), 	f_copyraw(cb) {}
-
-	//routines
-	inline void copyraw( mpz_t *rhs ) const { f_copyraw(this,rhs); }
-
-};
+//helper to shorten code
+#define _S _bigmath_compile::modcastszup(S)
 
 //big modular number
-template <int S, int pow2bits>
-struct bigmod_t : bigmodbase_t<S> {
+template <int S>
+struct bigmod_t : biguint_t<_S> {
 
-	typedef typename mathbankaccess_t<mpz_t,S,biguint_t<S>>::bankentry_t bankentry_t;
-
-	//limb alignment
-	static_assert(pow2bits>=0,"error: pow2bits < 0");
-	static_assert(S>0,"error: S <= 0");
-	static_assert(S>pow2bits,"error: S <= pow2bits");
+	//constant calculation and typedefs
+	static const unsigned int pow2bits = _bigmath_compile::modpow2calc(S);
+	typedef typename mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bankentry_t bankentry_t;
 
 	//constants
 	const int FLG_CLEAN  = 0x01;
@@ -610,17 +619,12 @@ struct bigmod_t : bigmodbase_t<S> {
 	// routines
 	//
 
-		inline biguint_t<S>* _upcast() { return static_cast<biguint_t<S>*>(this); }
-
-		// >>> callback interface for simulated virtual functions
-
-			inline static void _cb_copyraw( const void *handle, mpz_t *out ) {
-				static_cast<const bigmod_t<S,pow2bits>*>(handle)->copyraw(out);
-			}
+		inline const biguint_t<_S>* _upcast_const() const 	{ return static_cast<const biguint_t<_S>*>(this); }
+		inline 		 biguint_t<_S>* _upcast() 				{ return static_cast<biguint_t<_S>*>(this); }
 
 		// >>> smart pointer management for modulus
 
-			#define make(ee) { ee=mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::allocnode(); }
+			#define make(ee) { ee=mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bank_t::allocnode(); }
 			#define kill(ee) { if(pow2bits>0) { ee->m_maske->m_bank->freenode(ee->m_maske); } ee->m_bank->freenode(ee); }
 				
 			inline bankentry_t* _initpow2mod( bankentry_t *r ) {
@@ -677,99 +681,107 @@ struct bigmod_t : bigmodbase_t<S> {
 			inline void _markclean() 	{ m_modflags|=FLG_CLEAN; }
 			inline void _dirty() 		{ m_modflags&=(~FLG_CLEAN); }
 
-	inline bigmod_t( 									   			) : bigmodbase_t<S>( _cb_copyraw ),	     m_modptr(_genmod(1)),  		  m_modflags(0)	  	 	 	 {}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( 						int d 		   			) : bigmodbase_t<S>( _cb_copyraw ),      m_modptr(_genmod(d)), 			  m_modflags(0)				 {}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( 						const mpz_t *d 			) : bigmodbase_t<S>( _cb_copyraw ),      m_modptr(_genmod(d)), 			  m_modflags(0)				 {}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( int rhs, 				const mpz_t *d 			) : bigmodbase_t<S>( rhs, _cb_copyraw ), m_modptr(_genmod(d)), 			  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( int rhs, 				int d 		   			) : bigmodbase_t<S>( rhs, _cb_copyraw ), m_modptr(_genmod(d)), 			  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( const bigmod_t &rhs				  			) : bigmodbase_t<S>( rhs, _cb_copyraw ), m_modptr(_refmod(rhs.m_modptr)), m_modflags(rhs.m_modflags) {} //cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( int rhs,				const bankentry_t *d	) : bigmodbase_t<S>( rhs, _cb_copyraw ), m_modptr(_refmod(d)), 	 		  m_modflags(0) 			 {} //cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( const mpz_t *rhs, 		const bankentry_t *d 	) : bigmodbase_t<S>( rhs, _cb_copyraw ), m_modptr(_refmod(d)),		 	  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
-	inline bigmod_t( const mpz_t *rhs, 		const mpz_t *d 			) : bigmodbase_t<S>( rhs, _cb_copyraw ), m_modptr(_genmod(d)), 			  m_modflags(0) 			 {}
+	inline bigmod_t( 									   			) : biguint_t<_S>(),	     					m_modptr(_genmod(1)),  		  	  m_modflags(0)	  	 	 	 {}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( 						 int d 		   			) : biguint_t<_S>(),      						m_modptr(_genmod(d)), 			  m_modflags(0)				 {}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( 						 const mpz_t *d 		) : biguint_t<_S>(),      						m_modptr(_genmod(d)), 			  m_modflags(0)				 {}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( int rhs, 				 const mpz_t *d 		) : biguint_t<_S>( rhs ), 						m_modptr(_genmod(d)), 			  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( int rhs, 				 int d 		   			) : biguint_t<_S>( rhs ), 						m_modptr(_genmod(d)), 			  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( const bigmod_t &rhs				  			) : biguint_t<_S>( rhs._upcast_const()[0] ),	m_modptr(_refmod(rhs.m_modptr)),  m_modflags(rhs.m_modflags) {} //cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( int rhs,				 const bankentry_t &d	) : biguint_t<_S>( rhs ), 						m_modptr(_refmod(&d)), 	 	  	  m_modflags(0) 			 {} //cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( const mpz_t *rhs, 		 const bankentry_t &d 	) : biguint_t<_S>( rhs ), 						m_modptr(_refmod(&d)),		 	  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( const mpz_t *rhs, 		 const mpz_t *d 		) : biguint_t<_S>( rhs ), 						m_modptr(_genmod(d)), 			  m_modflags(0) 			 {} //cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( const bankentry_t &rhs, const bankentry_t &d 	) : biguint_t<_S>( rhs.m_v ), 					m_modptr(_refmod(&d)),		  	  m_modflags(0) 			 {}	
 
 	inline ~bigmod_t() 																		{ SAFE() _derefmod(m_modptr); }
 	//the above is deliberately *not* virtual for performance
 
 	inline 			int 					operator=( int rhs )							{ SAFE() _dirty(); 				 				    				    _upcast()->operator=(rhs); return(rhs);   		}
 	inline   	  mpz_t* 					operator=( const mpz_t *rhs )					{ SAFE() _dirty(); 				 				    				    _upcast()->operator=(rhs); return(this->b.m_v); }
-	inline        bigmod_t<S,pow2bits>& 	operator=( const bigmod_t<S,pow2bits> &rhs )	{ SAFE() _changemod(&m_modptr,rhs.m_modptr); m_modflags=rhs.m_modflags; _upcast()->operator=(rhs); return(*this); 		} //overload to avoid structure copy errors
+	inline        bigmod_t<S>& 				operator=( const bigmod_t<S> &rhs )				{ SAFE() _changemod(&m_modptr,rhs.m_modptr); m_modflags=rhs.m_modflags; _upcast()->operator=(rhs); return(*this); 		} //overload to avoid structure copy errors
 
 	inline void operator+=(  const mpz_t *rhs )  											{ SAFE() _upcast()->_add(rhs); _dirty(); }												//dirty
 	inline void operator-=(  const mpz_t *rhs )  											{ SAFE() _upcast()->_sub(rhs); _dirty(); }												//dirty
 	inline void operator*=(  const mpz_t *rhs )  											{ SAFE() _upcast()->_mul(rhs); _doclean(); } 											//reduce now
-	inline void operator/=(  const mpz_t *rhs ) 	 										{ SAFE() bigmod_t<S,pow2bits> _rhs(rhs); this[0]*=_rhs._inverse(); }					//multiply reduces
-	inline void operator%=(  const mpz_t *rhs )  											{ SAFE() _clean(); _upcast()->_mod(rhs); }
-	inline void operator<<=( const mpz_t *rhs )  											{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_modptr); this[0]*=_rhs._pow(rhs); }				//multiply reduces
-	inline void operator>>=( const mpz_t *rhs )  											{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_modptr); this[0]*=_rhs._inverse()._pow(rhs); }	//multiply reduces
-	inline void operator&=(  const mpz_t *rhs ) 											{ SAFE() _clean(); _upcast()->_and(rhs); }
+	inline void operator/=(  const mpz_t *rhs ) 	 										{ SAFE() bigmod_t<S> _rhs(rhs); this[0]*=_rhs._inverse(); }								//multiply reduces
+	inline void operator%=(  const mpz_t *rhs )  											{ SAFE() _clean(); _upcast()->_mod(rhs); }												//clean - cannot expand number
+	inline void operator<<=( const mpz_t *rhs )  											{ SAFE() bigmod_t<S> _rhs(2,m_modptr); this[0]*=_rhs._pow(rhs); }						//multiply reduces
+	inline void operator>>=( const mpz_t *rhs )  											{ SAFE() bigmod_t<S> _rhs(2,m_modptr); this[0]*=_rhs._inverse()._pow(rhs); }			//multiply reduces
+	inline void operator&=(  const mpz_t *rhs ) 											{ SAFE() _clean(); _upcast()->_and(rhs); }												//clean - cannot expand number
 	inline void operator|=(  const mpz_t *rhs ) 											{ SAFE() _clean(); _upcast()->_or(rhs);  _dirty(); }									//dirty
 	inline void operator^=(  const mpz_t *rhs ) 											{ SAFE() _clean(); _upcast()->_xor(rhs); _dirty(); }									//dirty
 
 	inline void operator+=( const int rhs ) 												{ SAFE() _upcast()->_add(rhs); _dirty(); }												//dirty
 	inline void operator-=( const int rhs ) 												{ SAFE() _upcast()->_sub(rhs); _dirty(); }												//dirty
 	inline void operator*=( const int rhs ) 												{ SAFE() _upcast()->_mul(rhs); _doclean(); }											//reduce now
-	inline void operator/=( const int rhs ) 	 											{ SAFE() bigmod_t<S,pow2bits> _rhs(rhs,m_modptr); this[0]*=_rhs._inverse(); }			//multiply reduces
-	inline void operator%=( const int rhs ) 												{ SAFE() _clean(); _upcast()->_mod(rhs); }
-	inline void operator<<=( const int rhs ) 												{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_modptr); this[0]*=_rhs._pow(rhs); }				//multiply reduces
-	inline void operator>>=( const int rhs ) 												{ SAFE() bigmod_t<S,pow2bits> _rhs(2,m_modptr); this[0]*=_rhs._inverse()._pow(rhs); }	//multiply reduces
-	inline void operator&=( const int rhs ) 												{ SAFE() _clean(); _upcast()->_and(rhs); }
+	inline void operator/=( const int rhs ) 	 											{ SAFE() bigmod_t<S> _rhs(rhs,m_modptr); this[0]*=_rhs._inverse(); }					//multiply reduces
+	inline void operator%=( const int rhs ) 												{ SAFE() _clean(); _upcast()->_mod(rhs); }												//clean - cannot expand number
+	inline void operator<<=( const int rhs ) 												{ SAFE() bigmod_t<S> _rhs(2,m_modptr); this[0]*=_rhs._pow(rhs); }						//multiply reduces
+	inline void operator>>=( const int rhs ) 												{ SAFE() bigmod_t<S> _rhs(2,m_modptr); this[0]*=_rhs._inverse()._pow(rhs); }			//multiply reduces
+	inline void operator&=( const int rhs ) 												{ SAFE() _clean(); _upcast()->_and(rhs); }												//clean - cannot expand number
 	inline void operator|=( const int rhs ) 												{ SAFE() _clean(); _upcast()->_or(rhs);  _dirty(); }									//dirty
 	inline void operator^=( const int rhs ) 												{ SAFE() _clean(); _upcast()->_xor(rhs); _dirty(); }									//dirty
 
-	inline 		 			 		biguint_t<S>& base()									{ SAFE() _clean(); return _upcast()[0]; 				}
+	inline 		 			 		biguint_t<_S>& base()									{ SAFE() _clean(); return _upcast()[0]; 				}
 	inline 		 			 	 	mpz_t* raw()											{ SAFE() _clean(); return (this->b.m_v); 				}
 	inline		 			 const 	char* str()												{ SAFE() _clean(); return((const char*)this[0]); 		}
 	inline 		 	operator const 	mpz_t*()												{ SAFE() _clean(); return (this->b.m_v); 				}
-	inline explicit operator 		biguint_t<S>*()											{ SAFE() _clean(); return _upcast(); 					}
+	inline explicit operator 		biguint_t<_S>*()										{ SAFE() _clean(); return _upcast(); 					}
 	inline explicit operator 		unsigned int() 		 									{ SAFE() _clean(); return (unsigned int)(_upcast()[0]); }
 	inline explicit operator 		int() 				 									{ SAFE() _clean(); return (int)(_upcast()[0]); 			}
 	inline explicit operator const 	char*()													{ SAFE() _clean(); return (const char*)(_upcast()[0]); 	}
 	//operator const return of mpz_t is to prevent resolution ambiguity introduced by non-const
 
-	//additional modular specific routines
+	//
+	// additional modular specific routines
+	//
 
-		inline bigmod_t<S,pow2bits>& _inverse() 												{ mpz_invert(  this->b.m_vtmp[0], this->b.m_v[0], 		  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
-		inline bigmod_t<S,pow2bits>& _pow( const mpz_t *rhs )									{ mpz_powm(    this->b.m_vtmp[0], this->b.m_v[0], rhs[0], m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
-		inline bigmod_t<S,pow2bits>& _pow( int rhs )											{ mpz_powm_ui( this->b.m_vtmp[0], this->b.m_v[0], rhs, 	  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
+		inline bigmod_t<S>& _inverse() 														{ mpz_invert(  this->b.m_vtmp[0], this->b.m_v[0], 		  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
+		inline bigmod_t<S>& _pow( const mpz_t *rhs )										{ mpz_powm(    this->b.m_vtmp[0], this->b.m_v[0], rhs[0], m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
+		inline bigmod_t<S>& _pow( int rhs )													{ mpz_powm_ui( this->b.m_vtmp[0], this->b.m_v[0], rhs, 	  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
 
-	inline bigmod_t<S,pow2bits> inverse() 													{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._inverse()); }
-	inline bigmod_t<S,pow2bits> pow( const mpz_t *rhs )										{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._pow(rhs));  }
-	inline bigmod_t<S,pow2bits> pow( int rhs )												{ SAFE() bigmod_t<S,pow2bits> _rhs(this[0]); return(_rhs._pow(rhs));  }
+	inline bigmod_t<S> inverse() 															{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._inverse()); }
+	inline bigmod_t<S> pow( const mpz_t *rhs )												{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._pow(rhs));  }
+	inline bigmod_t<S> pow( int rhs )														{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._pow(rhs));  }
 
 	inline 			void 			changemod( const mpz_t *rhs ) 							{ SAFE() _changemod(&m_modptr,_genmod(rhs)); _dirty(); }
-	inline 			void 			changemod( bankentry_t *rhs ) 							{ SAFE() _changemod(&m_modptr,rhs); _dirty(); }
+	inline 			void 			changemod( bankentry_t &rhs ) 							{ SAFE() _changemod(&m_modptr,rhs[0]); _dirty(); }
 	inline 		 	void 			copyraw( mpz_t *target )						  const { SAFE() _copycleanraw(target); }
-	inline 		 	bankentry_t*	getmodcopy() 									  const { SAFE() return(m_modptr); }
-	inline 			mpz_t*			getmod() 										  const { SAFE() return(m_modptr->m_v); }
+	inline 			bankentry_t&	getmodentry() 									  const { SAFE() return(m_modptr[0]); }
+	inline 			mpz_t*			getmod() 										  const { SAFE() return(m_modptr->raw()); }
 
-	//optimized chinese remainder theorem - function requires sz>0, s1,s1 are scratch memory
-	static biguint_t<S> fastcrt( bigmod_t *v, int sz, bigmod_t *s1, bigmod_t *s2 ) {
+	//chinese remainder optimized for big numbers - avoids big multiplies and big modulus reductions
+	static biguint_t<_S> crt( bigmod_t *v, int sz, bigmod_t *s1, bigmod_t *s2 ) {
 		int x, y;
-		biguint_t<S> r(v[0]);
 		bigmod_t delta;
+		biguint_t<_S> r(v[0]), scale(1);
 		for(x=1;x<sz;x++) {
-			s1[x] = bigmod_t( v[0],			 v[x].getmodcopy() );
-			s2[x] = bigmod_t( v[0].getmod(), v[x].getmodcopy() );
+			s1[x] = bigmod_t( v[0],			 	  v[x].getmodentry() );		//set all moduli to value in first mod
+			s2[x] = bigmod_t( v[0].getmodentry(), v[x].getmodentry() );		//set all multipliers for all moduli to first mod
 		}
 		for(x=1;x<sz;x++) {
-			//delta=(v[x]-s1[x])/scale;
-			//for(y=x+1;y<sz;y++) {
-			//	s1[y]+=s2[y]*delta;
-			//	s2[y]*=v[x].getmod();
-			//}
+			delta=(v[x]-s1[x])/s2[x];	//calculate steps to align to answer in field mod[x]
+			for(y=x+1;y<sz;y++) {
+				s1[y]+=s2[y]*delta;		//update answers in remaining mods - s2 on lefthand to prefer s2 modulus
+				s2[y]*=v[x].getmod();	//update multipliers in remaining mods
+			}
+			scale*=v[x-1].getmod();		//update global multiplier, lags behind to prevent unnecessary tail multiply
+			r+=scale*delta;				//update the return answer we are calculating - scale on lefthand for biguint result
 		}
+		return r;
 	}
 };
 
+#undef _S
+
 #ifndef BIGMATHNOTYPES
-typedef bigmod_t<128,0>   bigmod128_t;
-typedef bigmod_t<256,0>   bigmod256_t;
-typedef bigmod_t<512,0>   bigmod512_t;
-typedef bigmod_t<1024,0>  bigmod1024_t;
-typedef bigmod_t<2048,0>  bigmod2048_t;
-typedef bigmod_t<4096,0>  bigmod4096_t;
-typedef bigmod_t<8192,0>  bigmod8192_t;
-typedef bigmod_t<16384,0> bigmod16384_t;
+typedef bigmod_t<128>   bigmod128_t;
+typedef bigmod_t<256>   bigmod256_t;
+typedef bigmod_t<512>   bigmod512_t;
+typedef bigmod_t<1024>  bigmod1024_t;
+typedef bigmod_t<2048>  bigmod2048_t;
+typedef bigmod_t<4096>  bigmod4096_t;
+typedef bigmod_t<8192>  bigmod8192_t;
+typedef bigmod_t<16384> bigmod16384_t;
 #endif
 
 
@@ -778,7 +790,7 @@ typedef bigmod_t<16384,0> bigmod16384_t;
 //
 
 template <int S>
-struct bigstream_t : bigmod_t<(S*3),S> {
+struct bigstream_t : bigmod_t<-S> {
 
 	static_assert(S>0,"error: bigstream_t <= 0");
 
@@ -790,7 +802,7 @@ struct bigstream_t : bigmod_t<(S*3),S> {
 	// routines
 	//
 	
-	inline bigstream_t() : bigmod_t<(S*3),S>() {}
+	inline bigstream_t() : bigmod_t<-S>() {}
 	
 	
 };
