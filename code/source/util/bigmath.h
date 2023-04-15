@@ -46,15 +46,19 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 // math memory management template
 //
 
-#ifndef BIGMATHBANKSIZE
+#ifndef BIGMATHMODSCALE	//to prevent memory hits on modular types
+#define BIGMATHMODSCALE 3
+#endif
+
+#ifndef BIGMATHBANKSIZE	//should be size large enough to prevent thrashing on allocating/deallocating numbers
 #define BIGMATHBANKSIZE 100
 #endif
 
-#ifndef BIGMATHSTRBUFFERMAX
+#ifndef BIGMATHSTRBUFFERMAX	//max output string size from math library on any single string operation
 #define BIGMATHSTRBUFFERMAX 256
 #endif
 
-#ifndef BIGMATHSTRQUEUEMAX
+#ifndef BIGMATHSTRQUEUEMAX //max number of concurrent output strings before looping memory (per thread)
 #define BIGMATHSTRQUEUEMAX 32
 #endif
 
@@ -213,11 +217,11 @@ thread_local linkbase<typename mathbankaccess_t<T,S,CBT>::bank_t> mathbankaccess
 //
 
 namespace _bigmath_compile {
-	constexpr bool 			isneg( int a ) 			{ return(a<0?true:false); 			}
-	constexpr unsigned int 	constabs( int a ) 		{ return(a<0?-a:a); 				}
-	constexpr unsigned int 	modcastszup( int a ) 	{ return constabs(a)*3; 			}
-	constexpr unsigned int 	modcastszdown( int a ) 	{ return constabs(a)/3; 			}
-	constexpr unsigned int	modpow2calc( int a ) 	{ return isneg(a)?constabs(a):0; 	}
+	constexpr bool 			isneg( int a ) 			{ return(a<0?true:false); 				}
+	constexpr unsigned int 	constabs( int a ) 		{ return(a<0?-a:a); 					}
+	constexpr unsigned int 	modcastszup( int a ) 	{ return constabs(a)*BIGMATHMODSCALE; 	}
+	constexpr unsigned int 	modcastszdown( int a ) 	{ return constabs(a)/BIGMATHMODSCALE; 	}
+	constexpr unsigned int	modpow2calc( int a ) 	{ return isneg(a)?constabs(a):0; 		}
 }
 
 //
