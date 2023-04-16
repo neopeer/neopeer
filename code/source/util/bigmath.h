@@ -627,11 +627,12 @@ struct bigmod_t : biguint_t<_S> {
 
 		// >>> smart pointer management for modulus
 
-			#define make(ee) { ee=mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bank_t::allocnode(); }
-			#define kill(ee) {\
-				if(ee==g_defmodptr) { g_defmodptr=0; }\
-				if(pow2bits>0) { ee->m_maske->m_bank->freenode(ee->m_maske); }\
-				ee->m_bank->freenode(ee);\
+			inline void _makenode( bankentry_t **ee ) const { ee[0]=mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bank_t::allocnode(); }
+
+			inline void _killnode( bankentry_t *ee )  const {
+				if(ee==g_defmodptr) g_defmodptr=0;
+				if(pow2bits>0) 		ee->m_maske->m_bank->freenode(ee->m_maske);
+				ee->m_bank->freenode(ee);
 			}
 
 			inline bankentry_t* _initpow2mod( bankentry_t *r ) {
@@ -639,17 +640,17 @@ struct bigmod_t : biguint_t<_S> {
 				mpz_set_ui( v, 1 );
 				mpz_mul_2exp( vtmp, v, pow2bits );
 				this->b.swaptmp( &r );
-				make( r->m_maske );
+				_makenode( &r->m_maske );
 				mpz_sub_ui( r->m_maske->m_v[0], vtmp, 1 );
 				return r;
 			} //r=(2^pow2bits)-1
 
 			inline bankentry_t* _refmod( bankentry_t *ptr ) 					const 	{ ptr->m_refcnt++; return(ptr); }
-			inline void 		_derefmod( bankentry_t *ptr ) 					const	{ if(--ptr->m_refcnt<=0) kill(ptr); }
+			inline void 		_derefmod( bankentry_t *ptr ) 					const	{ if(--ptr->m_refcnt<=0) _killnode(ptr); }
 			inline void 		_changemod( bankentry_t **a, bankentry_t *b )	const	{ b->m_refcnt++; _derefmod(a[0]); a[0]=b; }
 
 			inline bankentry_t* _genmod( const mpz_t *d ) {
-				bankentry_t *r; make(r);
+				bankentry_t *r; _makenode(&r);
 				if(pow2bits>0) 	r = _initpow2mod(r);
 				else 			mpz_set( r->m_v[0], d );
 				r->m_refcnt=1;
@@ -657,7 +658,7 @@ struct bigmod_t : biguint_t<_S> {
 			}
 
 			inline bankentry_t* _genmod( int d ) {
-				bankentry_t *r; make(r);
+				bankentry_t *r; _makenode(&r);
 				if(pow2bits>0) 	r = _initpow2mod(r);
 				else 			mpz_set_si( r->m_v[0], d );
 				r->m_refcnt=1;
@@ -668,9 +669,6 @@ struct bigmod_t : biguint_t<_S> {
 				if(g_defmodptr==0) { return(g_defmodptr=_genmod(1)); }
 				return(_refmod(g_defmodptr));
 			}
-
-			#undef make
-			#undef kill
 
 		// >>> maintain number in modulus
 
