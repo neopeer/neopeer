@@ -47,8 +47,8 @@ struct __memsafe_pk {
 						const std::type_info  	*m_ti;
 
 //cppcheck-suppress noExplicitConstructor
-	inline __memsafe_pk( const std::type_info  *ti ) : m_ti(ti)  	{ m_item.link(this); g_base.add(&m_item); }
-	inline ~__memsafe_pk() 											{ g_base.remove(&m_item); }
+	inline __memsafe_pk( const std::type_info  *ti ) : m_item(this), m_ti(ti)  	{ g_base.add(&m_item); }
+	inline ~__memsafe_pk() 														{ g_base.remove(&m_item); }
 
 	static void memleakcheck() {
 

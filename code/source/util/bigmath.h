@@ -20,7 +20,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 */
 
 //Performance notes for upgrades:
-//	- Prefer implicit constructor initialization for member values
+//	- Prefer constructor initializer lists for structure members
 //	- Avoid the use of virtual declaration of functions in structures
 //	- Prefer non-const return values *if* it's safe, does not confuse compiler with ambiguity, and does not cause an unnecessary implicit copy
 //	- Prefer const input parameters when they will be unedited by a function (required for assignment operator functions).
@@ -79,14 +79,16 @@ struct mathbankaccess_t {
 
 	struct bankentry_t {
 
-		static thread_local char	g_strbuffer[BIGMATHSTRBUFFERMAX*BIGMATHSTRQUEUEMAX];	//thread specific to avoid mutex locks
-		static thread_local int		g_strbufferpos;											//thread specific to avoid mutex locks
+		static thread_local char		g_strbuffer[BIGMATHSTRBUFFERMAX*BIGMATHSTRQUEUEMAX];	//thread specific to avoid mutex locks
+		static thread_local int			g_strbufferpos;											//thread specific to avoid mutex locks
 
-		linkitem<bankentry_t>		m_item;
-		bank_t 						*m_bank;
-		T	 						*m_v;
-		bankentry_t					*m_maske;
-		int							m_refcnt;
+		linkitem_single<bankentry_t>	m_item;
+		bank_t 							*m_bank;
+		T	 							*m_v;
+		bankentry_t						*m_maske;
+		int								m_refcnt;
+
+		inline bankentry_t() : m_item(this), m_bank(), m_v(), m_maske(), m_refcnt() {}
 
 		inline char *getstringmem() {
 			char *handle;
@@ -109,23 +111,20 @@ struct mathbankaccess_t {
 		const unsigned int C_ALLOC_LIMBS = (S/mp_bits_per_limb+(S%mp_bits_per_limb==0?0:1)+1);
 		const unsigned int C_ALLOC_BITS  = C_ALLOC_LIMBS*mp_bits_per_limb;
 
-		static thread_local linkbase<bank_t> g_base, g_freebase;	//thread specific to avoid mutex locks
-							linkitem<bank_t> m_item, m_freeitem;
-							linkbase<bankentry_t> m_freenodebase;
+		static thread_local linkbase<bank_t> 				g_base, g_freebase;	//thread specific to avoid mutex locks
+							linkitem<bank_t> 				m_item, m_freeitem;
+							linkbase_single<bankentry_t> 	m_freenodebase;
 
 		T	 			m_v[BANKSIZE];
 		bankentry_t 	m_nodes[BANKSIZE];
 		int 			m_usedcount, m_freecount;
 
-		inline bool isbankfree() { SAFE(); return(m_usedcount<BANKSIZE || m_freenodebase.first()); }
+		inline bool isbankfree() { SAFE(); return(m_freenodebase.first() || m_usedcount<BANKSIZE); }
 
-		bank_t() {
+		bank_t() : m_item(this), m_freeitem(this), m_usedcount(0), m_freecount(0) {
 			SAFE()
-			m_item.link(this);
-			m_freeitem.link(this);
 			g_base.add(&m_item);
 			g_freebase.add(&m_freeitem);
-			m_usedcount=m_freecount=0;
 			for(int x=0;x<BANKSIZE;x++) CBT::_cbinit(&m_v[x],C_ALLOC_BITS);
 		}
 
@@ -163,7 +162,6 @@ struct mathbankaccess_t {
 
 		void freenode( bankentry_t *e ) {
 			SAFE()
-			e->m_item.link(e);										//linked list initialization of node
 			m_freenodebase.add(&e->m_item);							//add node to bank's freenodebase
 			if(isbankfree()==false) g_freebase.add(&m_freeitem);	//add bank to thread's list of banks with free elements
 			CBT::_cbrealloc(&e->m_v[0],C_ALLOC_BITS);				//reset gmp memory of this entry - prevents memory creep
@@ -577,7 +575,7 @@ struct bigfrac_t {
 		mpz_mul_2exp( r.b.m_vtmp[0], numref, 1 );		 				  	//double numerator
 		mpz_tdiv_q( r.b.m_v[0], r.b.m_vtmp[0], denref ); 				  	//divide - truncating toward zero
 		r += ( 2 * mpz_tstbit( r.b.m_v[0], 0 ) * mpz_sgn( r.b.m_v[0] ) );   //rounding logic
-		r /= 2;
+		r /= 2;																//not a shift to avoid issues with negatives
 		return(r);
 	}
 };
@@ -616,8 +614,9 @@ struct bigmod_t : biguint_t<_S> {
 	//cppcheck-suppress duplInheritedMember
 	SAFEHEAD(bigmod_t)
 
-	bankentry_t *m_modptr;
-	int 		 m_modflags;
+	static thread_local bankentry_t	*g_defmodptr;
+	bankentry_t 					*m_modptr;
+	int 		 					m_modflags;
 
 	//
 	// routines
@@ -629,8 +628,12 @@ struct bigmod_t : biguint_t<_S> {
 		// >>> smart pointer management for modulus
 
 			#define make(ee) { ee=mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bank_t::allocnode(); }
-			#define kill(ee) { if(pow2bits>0) { ee->m_maske->m_bank->freenode(ee->m_maske); } ee->m_bank->freenode(ee); }
-				
+			#define kill(ee) {\
+				if(ee==g_defmodptr) { g_defmodptr=0; }\
+				if(pow2bits>0) { ee->m_maske->m_bank->freenode(ee->m_maske); }\
+				ee->m_bank->freenode(ee);\
+			}
+
 			inline bankentry_t* _initpow2mod( bankentry_t *r ) {
 				mpz_t &v=r->m_v[0], &vtmp=this->b.m_vtmp[0];
 				mpz_set_ui( v, 1 );
@@ -661,6 +664,11 @@ struct bigmod_t : biguint_t<_S> {
 				return(r);
 			}
 
+			inline bankentry_t* _getdefmod() {
+				if(g_defmodptr==0) { return(g_defmodptr=_genmod(1)); }
+				return(_refmod(g_defmodptr));
+			}
+
 			#undef make
 			#undef kill
 
@@ -685,7 +693,7 @@ struct bigmod_t : biguint_t<_S> {
 			inline void _markclean() 	{ m_modflags|=FLG_CLEAN; }
 			inline void _dirty() 		{ m_modflags&=(~FLG_CLEAN); }
 
-	inline bigmod_t( 									   			) : biguint_t<_S>(),	     					m_modptr(_genmod(1)),  		  	  m_modflags(0)	  	 	 	 {}	//cppcheck-suppress noExplicitConstructor
+	inline bigmod_t( 									   			) : biguint_t<_S>(),	     					m_modptr(_getdefmod()),  		  m_modflags(0)	  	 	 	 {}	//cppcheck-suppress noExplicitConstructor
 	inline bigmod_t( 						 int d 		   			) : biguint_t<_S>(),      						m_modptr(_genmod(d)), 			  m_modflags(0)				 {}	//cppcheck-suppress noExplicitConstructor
 	inline bigmod_t( 						 const mpz_t *d 		) : biguint_t<_S>(),      						m_modptr(_genmod(d)), 			  m_modflags(0)				 {}	//cppcheck-suppress noExplicitConstructor
 	inline bigmod_t( int rhs, 				 const mpz_t *d 		) : biguint_t<_S>( rhs ), 						m_modptr(_genmod(d)), 			  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
@@ -743,18 +751,19 @@ struct bigmod_t : biguint_t<_S> {
 		inline bigmod_t<S>& _pow( const mpz_t *rhs )										{ mpz_powm(    this->b.m_vtmp[0], this->b.m_v[0], rhs[0], m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
 		inline bigmod_t<S>& _pow( int rhs )													{ mpz_powm_ui( this->b.m_vtmp[0], this->b.m_v[0], rhs, 	  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
 
-	inline bigmod_t<S> inverse() 															{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._inverse()); }
-	inline bigmod_t<S> pow( const mpz_t *rhs )												{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._pow(rhs));  }
-	inline bigmod_t<S> pow( int rhs )														{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._pow(rhs));  }
+	inline bigmod_t<S> inverse() 													const	{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._inverse()); }
+	inline bigmod_t<S> pow( const mpz_t *rhs )										const	{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._pow(rhs));  }
+	inline bigmod_t<S> pow( int rhs )												const	{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._pow(rhs));  }
 
 	inline 			void 			changemod( const mpz_t *rhs ) 							{ SAFE() _changemod(&m_modptr,_genmod(rhs)); _dirty(); }
 	inline 			void 			changemod( bankentry_t &rhs ) 							{ SAFE() _changemod(&m_modptr,rhs[0]); _dirty(); }
-	inline 		 	void 			copyraw( mpz_t *target )						  const { SAFE() _copycleanraw(target); }
-	inline 			bankentry_t&	getmodentry() 									  const { SAFE() return(m_modptr[0]); }
-	inline 			mpz_t*			getmod() 										  const { SAFE() return(m_modptr->raw()); }
+	inline 		 	void 			copyraw( mpz_t *target )						const 	{ SAFE() _copycleanraw(target); }
+	inline 			bankentry_t&	getmodentry() 									const 	{ SAFE() return(m_modptr[0]); }
+	inline 			mpz_t*			getmod() 										const 	{ SAFE() return(m_modptr->raw()); }
 
 	//chinese remainder optimized for big numbers - avoids big multiplies and big modulus reductions
-	static biguint_t<_S> crt( bigmod_t *v, int sz, bigmod_t *s1, bigmod_t *s2 ) {
+	//	this form may favor r/wordsize > sz
+	static biguint_t<_S> crt_scratch( bigmod_t *v, int sz, bigmod_t *s1, bigmod_t *s2 ) {
 		int x, y;
 		bigmod_t delta;
 		biguint_t<_S> r(v[0]), scale(1);
@@ -774,6 +783,9 @@ struct bigmod_t : biguint_t<_S> {
 		return r;
 	}
 };
+
+template <int S>
+thread_local typename mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bankentry_t *bigmod_t<S>::g_defmodptr = 0;
 
 #undef _S
 
