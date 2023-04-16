@@ -230,6 +230,9 @@ template <int S>
 struct bigmod_t;
 
 template <int S>
+struct bigfrac_t;
+
+template <int S>
 struct biguint_t {
 
 	static_assert(S>0,"error: biguint_t <= 0");
@@ -286,6 +289,12 @@ struct biguint_t {
 
 		inline void _neg()		 											{ SAFE() mpz_neg(b.m_v[0],b.m_v[0]); }
 		inline void _abs()		 											{ SAFE() mpz_abs(b.m_v[0],b.m_v[0]); }
+
+		inline bool _eq( const mpq_t *rhs ) 						const 	{ SAFE() return( bigfrac_t<S>( this[0] ) == rhs ); }
+		inline bool _gt( const mpq_t *rhs ) 						const 	{ SAFE() return( bigfrac_t<S>( this[0] ) > rhs ); }
+		inline bool _gte( const mpq_t *rhs ) 						const 	{ SAFE() return( bigfrac_t<S>( this[0] ) >= rhs ); }
+		inline bool _lt( const mpq_t *rhs ) 						const 	{ SAFE() return( bigfrac_t<S>( this[0] ) < rhs ); }
+		inline bool _lte( const mpq_t *rhs ) 						const 	{ SAFE() return( bigfrac_t<S>( this[0] ) <= rhs ); }
 
 		inline bool _eq( const mpz_t *rhs ) 						const 	{ SAFE() return(mpz_cmp( b.m_v[0], rhs[0] ) == 0);  }
 		inline bool _gt( const mpz_t *rhs ) 						const 	{ SAFE() return(mpz_cmp( b.m_v[0], rhs[0] ) > 0);  }
@@ -519,13 +528,20 @@ struct bigfrac_t {
 		inline void _neg()		 										{ SAFE() mpq_neg(b.m_v[0],b.m_v[0]); }
 		inline void _abs()		 										{ SAFE() mpq_abs(b.m_v[0],b.m_v[0]); }
 
-		//TODO: add mpz_t routines
+		inline void _add( const mpz_t *rhs ) 							{ SAFE() bigfrac_t _rhs(rhs); this->_add(_rhs.b.m_v); }
+		inline void _sub( const mpz_t *rhs ) 							{ SAFE() bigfrac_t _rhs(rhs); this->_sub(_rhs.b.m_v); }
+		inline void _mul( const mpz_t *rhs ) 							{ SAFE() bigfrac_t _rhs(rhs); this->_mul(_rhs.b.m_v); }
+		inline void _div( const mpz_t *rhs ) 							{ SAFE() bigfrac_t _rhs(rhs); this->_div(_rhs.b.m_v); }
+		inline bool _eq( const mpz_t *rhs ) 					const 	{ SAFE() bigfrac_t _rhs(rhs); return(this->_eq(_rhs.b.m_v));  }
+		inline bool _gt( const mpz_t *rhs ) 					const 	{ SAFE() bigfrac_t _rhs(rhs); return(this->_gt(_rhs.b.m_v));  }
+		inline bool _gte( const mpz_t *rhs ) 					const 	{ SAFE() bigfrac_t _rhs(rhs); return(this->_gte(_rhs.b.m_v)); }
+		inline bool _lt( const mpz_t *rhs ) 					const 	{ SAFE() bigfrac_t _rhs(rhs); return(this->_lt(_rhs.b.m_v));  }
+		inline bool _lte( const mpz_t *rhs ) 					const 	{ SAFE() bigfrac_t _rhs(rhs); return(this->_lte(_rhs.b.m_v)); }
 
 		inline void _add( const mpq_t *rhs ) 							{ SAFE() mpq_add(b.m_vtmp[0], b.m_v[0], rhs[0]); b.swap(); }
 		inline void _sub( const mpq_t *rhs ) 							{ SAFE() mpq_sub(b.m_vtmp[0], b.m_v[0], rhs[0]); b.swap(); }
 		inline void _mul( const mpq_t *rhs ) 							{ SAFE() mpq_mul(b.m_vtmp[0], b.m_v[0], rhs[0]); b.swap(); }
 		inline void _div( const mpq_t *rhs ) 							{ SAFE() mpq_div(b.m_vtmp[0], b.m_v[0], rhs[0]); b.swap(); }
-
 		inline bool _eq( const mpq_t *rhs ) 					const 	{ SAFE() return(mpq_cmp( b.m_v[0], rhs[0] ) == 0);  }
 		inline bool _gt( const mpq_t *rhs ) 					const 	{ SAFE() return(mpq_cmp( b.m_v[0], rhs[0] ) > 0);  }
 		inline bool _gte( const mpq_t *rhs ) 					const 	{ SAFE() return(mpq_cmp( b.m_v[0], rhs[0] ) >= 0); }
@@ -537,6 +553,11 @@ struct bigfrac_t {
 		inline bool _gte( const double &rhs ) 					const 	{ SAFE() return(mpq_get_d( b.m_v[0] ) >= rhs); }
 		inline bool _lt( const double &rhs ) 					const 	{ SAFE() return(mpq_get_d( b.m_v[0] ) < rhs);  }
 		inline bool _lte( const double &rhs ) 					const 	{ SAFE() return(mpq_get_d( b.m_v[0] ) <= rhs); }
+
+	inline void operator+=( const mpz_t *rhs ) 							{ _add(rhs); }
+	inline void operator-=( const mpz_t *rhs ) 							{ _sub(rhs); }
+	inline void operator*=( const mpz_t *rhs ) 							{ _mul(rhs); }
+	inline void operator/=( const mpz_t *rhs ) 							{ _div(rhs); }
 
 	inline void operator+=( const mpq_t *rhs ) 							{ _add(rhs); }
 	inline void operator-=( const mpq_t *rhs ) 							{ _sub(rhs); }
@@ -708,6 +729,8 @@ struct bigmod_t : biguint_t<_S> {
 	inline 			int 					operator=( int rhs )							{ SAFE() _dirty(); 				 				    				    _upcast()->operator=(rhs); return(rhs);   		}
 	inline   	  mpz_t* 					operator=( const mpz_t *rhs )					{ SAFE() _dirty(); 				 				    				    _upcast()->operator=(rhs); return(this->b.m_v); }
 	inline        bigmod_t<S>& 				operator=( const bigmod_t<S> &rhs )				{ SAFE() _changemod(&m_modptr,rhs.m_modptr); m_modflags=rhs.m_modflags; _upcast()->operator=(rhs); return(*this); 		} //overload to avoid structure copy errors
+
+	inline void neg()  																		{ SAFE() _upcast()->_neg(); _dirty(); }													//dirty
 
 	inline void operator+=(  const mpz_t *rhs )  											{ SAFE() _upcast()->_add(rhs); _dirty(); }												//dirty
 	inline void operator-=(  const mpz_t *rhs )  											{ SAFE() _upcast()->_sub(rhs); _dirty(); }												//dirty

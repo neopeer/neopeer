@@ -27,6 +27,47 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 // ********* biguint_t overloads ********
 //
 
+//single standing operators
+
+template <int S>
+inline biguint_t<S> operator-( const biguint_t<S> &lhs ) 								{ biguint_t<S>  _lhs(lhs); _lhs._neg(); return(_lhs); }
+
+
+//cross-type overloads
+
+template <int S>
+inline bool operator!=( const biguint_t<S> &lhs, const mpq_t *rhs ) 					{ return !lhs._eq(rhs); }
+
+template <int S>
+inline bool operator==( const biguint_t<S> &lhs, const mpq_t *rhs ) 					{ return lhs._eq(rhs);  }
+
+template <int S>
+inline bool operator>( const biguint_t<S> &lhs, const mpq_t *rhs ) 						{ return lhs._gt(rhs);  }
+
+template <int S>
+inline bool operator>=( const biguint_t<S> &lhs, const mpq_t *rhs ) 					{ return lhs._gte(rhs);  }
+
+template <int S>
+inline bool operator<( const biguint_t<S> &lhs, const mpq_t *rhs ) 						{ return lhs._lt(rhs);  }
+
+template <int S>
+inline bool operator<=( const biguint_t<S> &lhs, const mpq_t *rhs ) 					{ return lhs._lte(rhs);  }
+
+template <int S>
+inline bigfrac_t<S> operator+( const biguint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs+=rhs; return(_lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator-( const biguint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs-=rhs; return(_lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator*( const biguint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs*=rhs; return(_lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator/( const biguint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs/=rhs; return(_lhs); }
+
+
+//biguint overloads
+
 template <int S>
 inline bool operator!=( const biguint_t<S> &lhs, const mpz_t *rhs ) 					{ return !lhs._eq(rhs); }
 
@@ -170,6 +211,46 @@ inline biguint_t<S> operator^( const int lhs, biguint_t<S> rhs ) 						{ rhs^=lh
 //
 // ********* bigint_t overloads ********
 //
+
+
+//single standing operators
+
+template <int S>
+inline bigint_t<S> operator-( const bigint_t<S> &lhs ) 									{ bigint_t<S>  _lhs(lhs); _lhs._neg(); return(_lhs); }
+
+
+//cross-type overloads
+
+template <int S>
+inline bool operator!=( const bigint_t<S> &lhs, const mpq_t *rhs ) 						{ return !lhs._eq(rhs);  }
+
+template <int S>
+inline bool operator==( const bigint_t<S> &lhs, const mpq_t *rhs ) 						{ return lhs._eq(rhs);  }
+
+template <int S>
+inline bool operator>( const bigint_t<S> &lhs, const mpq_t *rhs ) 						{ return lhs._gt(rhs);  }
+
+template <int S>
+inline bool operator>=( const bigint_t<S> &lhs, const mpq_t *rhs ) 						{ return lhs._gte(rhs);  }
+
+template <int S>
+inline bool operator<( const bigint_t<S> &lhs, const mpq_t *rhs ) 						{ return lhs._lt(rhs);  }
+
+template <int S>
+inline bool operator<=( const bigint_t<S> &lhs, const mpq_t *rhs ) 						{ return lhs._lte(rhs);  }
+
+template <int S>
+inline bigfrac_t<S> operator+( const bigint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs+=rhs; return(_lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator-( const bigint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs-=rhs; return(_lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator*( const bigint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs*=rhs; return(_lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator/( const bigint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs/=rhs; return(_lhs); }
+
 
 //biginteger overloads
 
@@ -316,6 +397,47 @@ inline bigint_t<S> operator^( const int lhs, bigint_t<S> rhs ) 							{ rhs^=lhs
 // ********* bigfrac_t overloads ********
 //
 
+//single standing operators
+
+template <int S>
+inline bigfrac_t<S> operator-( const bigfrac_t<S> &lhs ) 								{ bigfrac_t<S>  _lhs(lhs); _lhs._neg(); return(_lhs); }
+
+
+//cross-type overloads
+
+template <int S>
+inline bool operator!=( const bigfrac_t<S> &lhs, const mpz_t *rhs ) 					{ return !lhs._eq(rhs);  }
+
+template <int S>
+inline bool operator==( const bigfrac_t<S> &lhs, const mpz_t *rhs ) 					{ return lhs._eq(rhs);  }
+
+template <int S>
+inline bool operator>( const bigfrac_t<S> &lhs, const mpz_t *rhs ) 						{ return lhs._gt(rhs);  }
+
+template <int S>
+inline bool operator>=( const bigfrac_t<S> &lhs, const mpz_t *rhs ) 					{ return lhs._gte(rhs);  }
+
+template <int S>
+inline bool operator<( const bigfrac_t<S> &lhs, const mpz_t *rhs ) 						{ return lhs._lt(rhs);  }
+
+template <int S>
+inline bool operator<=( const bigfrac_t<S> &lhs, const mpz_t *rhs ) 					{ return lhs._lte(rhs);  }
+
+template <int S>
+inline bigfrac_t<S> operator+( bigfrac_t<S> lhs, const mpz_t *rhs ) 					{ lhs+=rhs; return(lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator-( bigfrac_t<S> lhs, const mpz_t *rhs ) 					{ lhs-=rhs; return(lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator*( bigfrac_t<S> lhs, const mpz_t *rhs ) 					{ lhs*=rhs; return(lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator/( bigfrac_t<S> lhs, const mpz_t *rhs ) 					{ lhs/=rhs; return(lhs); }
+
+
+//frac overloads
+
 template <int S>
 inline bool operator!=( const bigfrac_t<S> &lhs, const mpq_t *rhs ) 					{ return !lhs._eq(rhs);  }
 
@@ -345,8 +467,6 @@ inline bigfrac_t<S> operator*( bigfrac_t<S> lhs, const mpq_t *rhs ) 					{ lhs*=
 
 template <int S>
 inline bigfrac_t<S> operator/( bigfrac_t<S> lhs, const mpq_t *rhs ) 					{ lhs/=rhs; return(lhs); }
-
-//TODO: add mpz_t overloads
 
 //double rhs overloads
 
@@ -417,6 +537,14 @@ inline bigfrac_t<S> operator/( const double &lhs, const bigfrac_t<S> &rhs )				{
 //
 // bigmod overloads
 //
+
+
+//single standing operators
+
+template <int S>
+inline bigmod_t<S> operator-( const bigmod_t<S> &lhs ) 									{ bigmod_t<S>  _lhs(lhs); _lhs.neg(); return(_lhs); }
+
+//standard operators
 
 template <int S>
 inline bool operator!=( bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return !lhs._eq(rhs); }
