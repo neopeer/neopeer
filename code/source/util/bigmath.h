@@ -19,20 +19,29 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-//Performance notes for upgrades:
+//Trouble-compiling:
+//	- Check for use of "const" declaration on your bigmath types (supporting const for all edge cases negatively impacts performance)
+//Performance notes:
 //	- Prefer constructor initializer lists for structure members
 //	- Avoid the use of virtual declaration of functions in structures
-//	- Prefer non-const return values *if* it's safe, does not confuse compiler with ambiguity, and does not cause an unnecessary implicit copy
-//	- Prefer const input parameters when they will be unedited by a function (required for assignment operator functions).
-//	- Preter const function declaration where possible 
+//	- Prefer non-const return values *if* it's safe, does not cause compile ambiguity, and does not cause unnecessary implicit copies
+//	- Prefer const input parameters UNLESS:
+//		- function is returning a type that can be the result of optimized operations on a non-const input value
+//		- it causes inefficient use of the type as part of an operation (e.g. internal scratch memory and modulus finalization automation)
+//	- Prefer const function declarations where possible 
 //	- Prefer use of the address accessing (&) for input parameters where possible for anything other than integers
-//	- Explicitly define global arithmetic operators with GMP & standard types to curate optimal operation (optimal copies, etc...)
+//	- Explicitly define global arithmetic operators with GMP & standard types to curate optimal performance (optimal copies etc...)
+//	- Avoid defining global arithmetic operators that take "const" for all custom types as this may encourage inefficient use of memory
 //	- Take advantages of the pre-allocated temporary memory & swap() operation provided if it will be faster for a GMP operation
 //Style: 
-//	- Do not override const warnings with a cast to eliminate const-ness, find a way to optimize your code without violating const
-//	- User-accessible non-operator functions that return internal data types 
-//		with accessible members/functions are returned by reference / all others by pointer
-//  - Global operators givn precedence to type on lefthand side e.g. uint_t * mod_t = uint_t
+//	- Do not override const warnings with a cast to eliminate const-ness, find a way to optimize your code instead without violating const contract
+//	- User-accessible non-operator functions that return internal data types with accessible members/functions are returned by reference / all others by pointer
+//  - Global operators give return type precedence to lefthand type unless operation includes a fraction or a standard data type:
+//			 uint_t * mod_t  = uint_t
+//			 uint_t * frac_t = frac_t
+//			 int    * frac_t = frac_t
+//			 double * frac_t = frac_t
+//			 frac_t * int    = frac_t
 
 #ifndef BIGMATH_H
 #define BIGMATH_H
@@ -758,6 +767,7 @@ struct bigmod_t : biguint_t<_S> {
 	inline 		 			 	 	mpz_t* raw()											{ SAFE() _clean(); return (this->b.m_v); 				}
 	inline		 			 const 	char* str()												{ SAFE() _clean(); return((const char*)this[0]); 		}
 	inline 		 	operator const 	mpz_t*()												{ SAFE() _clean(); return (this->b.m_v); 				}
+	inline 		 	operator const 	mpz_t*()										const	{ SAFE() _modularcastsafety_(this[0]); return(0);	}
 	inline explicit operator 		biguint_t<_S>*()										{ SAFE() _clean(); return _upcast(); 					}
 	inline explicit operator 		unsigned int() 		 									{ SAFE() _clean(); return (unsigned int)(_upcast()[0]); }
 	inline explicit operator 		int() 				 									{ SAFE() _clean(); return (int)(_upcast()[0]); 			}
