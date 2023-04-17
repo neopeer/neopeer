@@ -7,7 +7,8 @@
 #includes
 from imports.numbthy import *
 from imports.modmath import *
-from imports.utility import * 
+from imports.utility import *
+from imports.py3_classes import *
 #from decimal import Decimal,Context
 from decimal import *
 from fractions import Fraction
@@ -68,52 +69,6 @@ print("coset size in bits:", log2(coset))
 # SAMPLE3: carry counting oblivious transfer (even stronger) sample with signature checking
 #
 ###############################################################################################
-
-#polynomial class
-class PolyClass:
-	SUMPOLY	= 0
-	D1POLY	= 0
-	D2POLY	= 0
-	xvalue	= 0
-	modulus	= 0
-	def __init__(self,m,x):
-		self.modulus 	= m
-		self.xvalue 	= x
-		
-#block encode and decode class
-class BlockCoder:
-	def __init__(self, data, sindex, B0, B1, B2, F0, F1, F2, pow2bits, pow2sig, primes, unblind, p2mask, p2sigmask):
-		self.data = data
-		self.sindex = sindex
-		self.B0 = B0
-		self.B1 = B1
-		self.B2 = B2
-		self.F0 = F0
-		self.F1 = F1
-		self.F2 = F2
-		self.pow2bits = pow2bits
-		self.pow2sig = pow2sig
-		self.primes = primes
-		self.unblind = unblind
-		self.p2mask = p2mask
-		self.p2sigmask = p2sigmask
-		
-	def encode_block(self, block_index):
-		selection = self.data[block_index][self.sindex.value]
-		Bp = (self.B0 * SUM[block_index] + self.B1 * D1[block_index] + self.B2 * D2[block_index]) & self.p2mask
-		Bf = ((self.F0 * SUM[block_index] + self.F1 * D1[block_index] + self.F2 * D2[block_index]) >> self.pow2bits) & self.p2sigmask
-		hashing_tools_instance = HashingTools()
-		B = (hashing_tools_instance.sigpad(Bp) + Bf) & self.p2sigmask
-		return B
-	
-	def decode_block(self, B, block_index):
-		hashing_tools_instance = HashingTools()
-		decode = (hashing_tools_instance.sigunpad(B) * (pow2 - n)) & self.p2mask
-		decode = (decode * self.unblind) % self.primes
-		if decode != self.data[block_index][self.sindex.value]:
-			print("ERROR: Decode error. Stopping.")
-			sys.exit()
-
 #massive class for all the polynomical verification steps at the end. Likely candidate for breaking up later...
 class PolynomialVerifier:
 	def __init__(self, polycount, blockcount, storedB, POLYS):
@@ -153,7 +108,7 @@ class PolynomialVerifier:
 
 	def _check_final_accumulator(self):
 		for pindex in range(self.vcount):
-			hashing_tools_instance = HashingTools()
+			hashing_tools_instance = HashingTools(sigbuffbits)
 			P = self.POLYS[self.vpolys[pindex]]
 			BtestC = (B0 * P.SUMPOLY + B1 * P.D1POLY + B2 * P.D2POLY)
 			BtestF = ((F0 * P.SUMPOLY + F1 * P.D1POLY + F2 * P.D2POLY) >> pow2bits)
@@ -163,19 +118,6 @@ class PolynomialVerifier:
 				print(sigunpad(self.Bacc[pindex]))
 				print("ERROR: Polynomial checking has failed. Stopping.")
 				sys.exit()
-#this class can be broken into three. Just doing this for speed of getting things into classes at the moment.
-class HashingTools:
-	def get_ranged_prime(self, hashint, roof):
-		hashint = hashint % roof
-		while isprime(hashint) == False:
-			hashint = (hashint + 1) % roof
-		return hashint
-	
-	def sigpad(self, x):
-		return (x << sigbuffbits) # create signature buffer space
-	
-	def sigunpad(self, x):
-		return (x >> sigbuffbits) # remove signature buffer space
 #Another huge class this time for making POLYS
 class PolynomialGenerator:
 	def __init__(self, decodekeys, polycount, sigcoefficientmax, blockcount, SUM, D1, D2, pow2sig):
@@ -191,7 +133,7 @@ class PolynomialGenerator:
 	def generate_polynomials(self):
 		POLYS = []
 		for pindex in range(self.polycount):
-			hashing_tools_instance = HashingTools()
+			hashing_tools_instance = HashingTools(sigbuffbits)
 			m = hashing_tools_instance.get_ranged_prime(hash256sum(self.decodekeys,pindex), self.sigcoefficientmax)
 			x = hash256sum(self.decodekeys,pindex,m) % m
 
@@ -218,6 +160,7 @@ class PolynomialGenerator:
 				print("ERROR: D2POLY overflow. Stopping.")
 				sys.exit()
 		return POLYS
+
 #
 class PrepCarryInformation:
 	def __init__(self, b0, b1, b2, n, pow2sigbits, pow2):
@@ -270,6 +213,7 @@ class PrepCarryInformation:
 		if error: 
 			print("Sample 3 - Sanity check failed. Stopping.")
 			sys.exit()
+
 
 #Terrible hacky class to move all this crypto code into 1 class
 class Security:
@@ -441,7 +385,7 @@ F2 = carry_info.F2
 
 print("Sample 3 -",blockcount,"blocks... executing...")
 
-block_coder = BlockCoder(DATA, sindex, B0, B1, B2, F0, F1, F2, pow2bits, pow2sig, primes, unblind, p2mask, p2sigmask)
+block_coder = BlockCoder(DATA, sindex, B0, B1, B2, F0, F1, F2, pow2bits, pow2sig, primes, unblind, p2mask, p2sigmask, SUM, D1, D2, sigbuffbits, n)
 
 storedB = []
 sampleclock = timeit.default_timer()
