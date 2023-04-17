@@ -27,24 +27,15 @@ If the programmer determines that a recommendation from the static analyzer is a
 
 &emsp;*//cppcheck-suppress [warningcode]*  
 
-In the above you would replace [warningcode] with the appropriate code found from the output of:  
-
-&emsp;*cppcheck --errorlist --template='{file}:{line},{severity},{id},{message}'*  
-
+In the above you would replace [warningcode] with the appropriate code found from the output of cppcheck in the error log.
 
 **Example static analysis suppression:**  
 
-Let's say you receive the following warning:  
+Let's say you receive the following warning/error in the out log:  
 
-&emsp;*(style) Struct 'biguint_t < 128 >' has a constructor with 1 argument that is not explicit.*  
+&emsp;*(style) Struct 'biguint_t < 128 >' has a constructor with 1 argument that is not explicit. [noExplicitConstructor]*  
 
-If using Linux, the error code may be found the following way:  
-
-&emsp;*cppcheck --errorlist --template='{file}:{line},{severity},{id},{message}' | grep "is not explicit"*  
-
-Gives return:  
-
-&emsp;*error id="noExplicitConstructor" severity="style" msg="Class &apos;classname&apos; has a constructor with 1 argument that is not explicit." verbose="Class &apos;classname&apos; has a constructor with 1 argument that is not explicit. Such constructors should in general be explicit for type safety reasons. Using the explicit keyword in the constructor means some mistakes when using the class can be avoided." cwe="398"*  
+The [warningcode] is marked at the tail of the above message.
 
 The comment to place on the preceding line to suppress the message would be:  
 
