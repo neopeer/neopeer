@@ -50,12 +50,36 @@ int appmain(_UNUSED_ int argc, _UNUSED_ char **argv)
 }
 #endif
 
+//
+// thread management
+//
+
+#define MAXTHREADCLEANERS 65536
+typedef void (*cb_cleaner_tp)(void);
+thread_local cb_cleaner_tp 	__thread_cleaners[MAXTHREADCLEANERS];
+thread_local int 			__thread_cleaner_index=0;
+void __thread_function_cleaner_add__( cb_cleaner_tp cb ) {
+	if(__thread_cleaner_index>=MAXTHREADCLEANERS) throw std::runtime_error("Maximum count of thread cleaners reached.");
+	__thread_cleaners[__thread_cleaner_index++] = cb;
+}
+
+void __thread_clean() {
+	int x;
+	for(x=0;x<__thread_cleaner_index;x++) { __thread_cleaners[x](); }
+}
+
+
+//
+// main program
+//
+
 #ifndef NDEBUG
 #include <iostream>
 //extern "C" int __lsan_is_turned_off() { return 1; }
 #endif
 int main(int argc, char **argv) {
 	int ret = appmain(argc,argv);
+	__thread_clean();
 	__memsafe_pk::memleakcheck();
 	#ifndef NDEBUG
 		printf("Press enter to exit.\n");

@@ -19,7 +19,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-//Trouble-compiling:
+//Trouble compiling:
 //	- Check for use of "const" declaration on your bigmath types (supporting const for all edge cases negatively impacts performance)
 //Performance notes:
 //	- Prefer constructor initializer lists for structure members
@@ -33,6 +33,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 //	- Explicitly define global arithmetic operators with GMP & standard types to curate optimal performance (optimal copies etc...)
 //	- Avoid defining global arithmetic operators that take "const" for all custom types as this may encourage inefficient use of memory
 //	- Take advantages of the pre-allocated temporary memory & swap() operation provided if it will be faster for a GMP operation
+//	- Use single linked lists where possible if such a construct is needed
 //Style: 
 //	- Do not override const warnings with a cast to eliminate const-ness, find a way to optimize your code instead without violating const contract
 //	- User-accessible non-operator functions that return internal data types with accessible members/functions are returned by reference / all others by pointer
@@ -43,8 +44,16 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 //			 double * frac_t = frac_t
 //			 frac_t * int    = frac_t
 
+//TODO: Change to right-hand operators of non-casted types for certain functions if it avoids a forced copy
+
 #ifndef BIGMATH_H
 #define BIGMATH_H
+
+//below function must be implemented in the calling program to capture functions 
+//	to call to clean up number caches - this is necessary to avoid a memory leak
+extern "C" { 
+	void __thread_function_cleaner_add__( void (*cleaner)(void) );
+}
 
 #include <new>
 #include <gmp.h>
@@ -55,8 +64,16 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 // math memory management template
 //
 
-#ifndef BIGMATHMODSCALE	//to prevent memory hits on modular types
-#define BIGMATHMODSCALE 3
+#ifndef BIGMATHMAXSCALE	//max scaling of number over its base size
+#define BIGMATHMAXSCALE 3
+#endif
+
+#ifndef BIGMATHCACHESIZE //optimization for L1 CPU caches without compromising on bank sizes, measured in bits - beware this is PER instantiated type
+#define BIGMATHCACHESIZE (32*1024*8)
+#endif
+
+#ifndef BIGMATHMODSCALE	//can be lowered below the max memory scaling if there is a computational advantage to it
+#define BIGMATHMODSCALE BIGMATHMAXSCALE
 #endif
 
 #ifndef BIGMATHBANKSIZE	//should be size large enough to prevent thrashing on allocating/deallocating numbers
@@ -70,6 +87,42 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #ifndef BIGMATHSTRQUEUEMAX //max number of concurrent output strings before looping memory (per thread)
 #define BIGMATHSTRQUEUEMAX 32
 #endif
+
+static_assert(BIGMATHMODSCALE<=BIGMATHMAXSCALE,"BIGMATHMODSCALE must be <= BIGMATHMAXSCALE");
+
+//
+// helper routines to minimize template code and optimize resulting assembly
+//
+
+//requires >= c++20 to evaluate constants
+static_assert(__cplusplus > 201703L,"c++ version must be >= 2020");
+
+namespace _bigmath_compile {
+
+	consteval bool 			isneg( int a ) 			{ return(a<0?true:false); 				}
+	consteval unsigned int 	constabs( int a ) 		{ return(a<0?-a:a); 					}
+	consteval unsigned int 	modcastszup( int a ) 	{ return constabs(a)*BIGMATHMODSCALE; 	}
+	consteval unsigned int 	modcastszdown( int a )	{ return constabs(a)/BIGMATHMODSCALE; 	}
+	consteval unsigned int	modpow2calc( int a ) 	{ return isneg(a)?constabs(a):0; 		}
+
+		consteval int _log2( int val, int c ) {
+			int r = val>>c;
+			if(r==0) return c;
+			return _log2(val,c+1);
+		}
+
+	consteval unsigned int	compute_cache_pow2_size( const int cachebits, const int numbits ) {
+		int log2  = _log2(cachebits/numbits,0)-1;
+		int log2f = log2>1?log2:1;
+		return(1<<log2f);
+	}
+
+}
+
+
+//
+// memory bank routines to speed up math objects
+//
 
 template <typename T, int S, typename CBT>
 struct mathbankaccess_t {
@@ -85,6 +138,7 @@ struct mathbankaccess_t {
 	//
 
 	struct bank_t;
+	struct bankpreload_t;
 
 	struct bankentry_t {
 
@@ -115,10 +169,16 @@ struct mathbankaccess_t {
 
 		SAFEHEAD(bank_t)
 
-		static const int BANKSIZE = BIGMATHBANKSIZE;
-		
+		static const int BANKSIZE  = BIGMATHBANKSIZE;
+
 		const unsigned int C_ALLOC_LIMBS = (S/mp_bits_per_limb+(S%mp_bits_per_limb==0?0:1)+1);
 		const unsigned int C_ALLOC_BITS  = C_ALLOC_LIMBS*mp_bits_per_limb;
+
+		static const unsigned int CACHESIZE = _bigmath_compile::compute_cache_pow2_size(BIGMATHCACHESIZE,S);
+		static const unsigned int CACHEMASK = CACHESIZE-1;
+
+		static thread_local	bankentry_t						*g_cache[CACHESIZE];
+		static thread_local	unsigned int 					g_cachestore, g_cachefetch;
 
 		static thread_local linkbase<bank_t> 				g_base, g_freebase;	//thread specific to avoid mutex locks
 							linkitem<bank_t> 				m_item, m_freeitem;
@@ -128,13 +188,15 @@ struct mathbankaccess_t {
 		bankentry_t 	m_nodes[BANKSIZE];
 		int 			m_usedcount, m_freecount;
 
-		inline bool isbankfree() { SAFE(); return(m_freenodebase.first() || m_usedcount<BANKSIZE); }
+		inline bool isbankfree() { SAFE(); return(m_freenodebase.last() || m_usedcount<BANKSIZE); }
 
 		bank_t() : m_item(this), m_freeitem(this), m_usedcount(0), m_freecount(0) {
+			g_preloader.compile();	//force compiler to include preloader for g_cache - it will be optimized out otherwise
 			SAFE()
+			int x;
 			g_base.add(&m_item);
 			g_freebase.add(&m_freeitem);
-			for(int x=0;x<BANKSIZE;x++) CBT::_cbinit(&m_v[x],C_ALLOC_BITS);
+			for(x=0;x<BANKSIZE;x++)  CBT::_cbinit(&m_v[x],C_ALLOC_BITS);
 		}
 
 		~bank_t() {
@@ -144,40 +206,88 @@ struct mathbankaccess_t {
 			for(int x=0;x<BANKSIZE;x++) CBT::_cbdeinit(&m_v[x],C_ALLOC_BITS);
 		}
 
-		static bankentry_t *allocnode() {
+			static bankentry_t *_allocfrombank() {
+				
+				bankentry_t 	*node;
+				bank_t 			*bank = g_freebase.first();
 
-			bankentry_t 	*node;
-			bank_t 			*bank = g_freebase.first();
+				if(bank==0) {
+					if(!(bank=new bank_t)) { throw std::bad_alloc(); }
+				}
 
-			if(bank==0) {
-				if(!(bank=new bank_t)) { throw std::bad_alloc(); }
+				if((node = bank->m_freenodebase.last())==0) {
+					node = &bank->m_nodes[bank->m_usedcount];
+					node->m_bank 		= bank;
+					node->m_v			= &bank->m_v[bank->m_usedcount++];
+				}
+				else {
+					bank->m_freenodebase.remove(&node->m_item);
+					bank->m_freecount--;
+				}
+
+				if(bank->isbankfree()==false) g_freebase.remove(&bank->m_freeitem);
+
+				return node;
+
+			}
+			
+			inline static bankentry_t *_cachefetch() {
+				bankentry_t *e;
+				if((e=g_cache[g_cachefetch])) { 
+					g_cache[g_cachefetch]=0;
+					g_cachefetch=(g_cachefetch+1)&CACHEMASK;	//fast wrap for pow2 field
+					return e;
+				}
+				return(_allocfrombank());
 			}
 
-			if((node = bank->m_freenodebase.first())==0) {
-				node = &bank->m_nodes[bank->m_usedcount];
-				node->m_bank 		= bank;
-				node->m_v			= &bank->m_v[bank->m_usedcount++];
-			}
-			else {
-				bank->m_freenodebase.remove(&node->m_item);
-				bank->m_freecount--;
+		inline static bankentry_t *allocnode() { return(_cachefetch()); }
+
+			inline void _cleangmp( bankentry_t *e ) {
+				CBT::_cbrealloc(&e->m_v[0],C_ALLOC_BITS);				//reset gmp memory of this entry - prevents GMP memory creep - performance hit without custom memory manager
 			}
 
-			if(bank->isbankfree()==false) g_freebase.remove(&bank->m_freeitem);
+			void _freetobank( bankentry_t *e ) {
+				SAFE()
+				m_freenodebase.add(&e->m_item);							//add node to bank's freenodebase
+				if(isbankfree()==false) g_freebase.add(&m_freeitem);	//add bank to thread's list of banks with free elements
+				_cleangmp(e);											//reset gmp memory of this entry - prevents memory creep
+				if(++m_freecount>=m_usedcount) delete this;				//free this bank if all items free
+			}
 
-			return node;
+			inline static void _cachestore( bankentry_t *e ) {
+				if(g_cache[g_cachestore]) { 
+					g_cache[g_cachestore]->m_bank->_freetobank( g_cache[g_cachestore] ); 
+					g_cachefetch=(g_cachestore+1)&CACHEMASK; 	//move fetch up so it's using the oldest object in cache
+				}
+				g_cache[g_cachestore]=e;
+				g_cachestore=(g_cachestore+1)&CACHEMASK;		//fast wrap for pow2 field
+			}
 
-		}
-
-		void freenode( bankentry_t *e ) {
-			SAFE()
-			m_freenodebase.add(&e->m_item);							//add node to bank's freenodebase
-			if(isbankfree()==false) g_freebase.add(&m_freeitem);	//add bank to thread's list of banks with free elements
-			CBT::_cbrealloc(&e->m_v[0],C_ALLOC_BITS);				//reset gmp memory of this entry - prevents memory creep
-			if(++m_freecount>=m_usedcount) delete this;				//free this bank if all items free
-		}
+		static inline void freenode( bankentry_t *e ) { _cachestore(e); }
 
 	};
+
+	struct bankpreload_t {
+
+		static void unloadcache() {
+			unsigned int x;
+			for(x=0;x<bank_t::CACHESIZE;x++) {
+				if(bank_t::g_cache[x]) bank_t::g_cache[x]->m_bank->_freetobank(bank_t::g_cache[x]);
+			}
+		}
+
+		bankpreload_t() {
+			unsigned int x;
+			for(x=0;x<bank_t::CACHESIZE;x++) bank_t::g_cache[x] = bank_t::_allocfrombank();
+			__thread_function_cleaner_add__(&unloadcache);
+		}
+
+		inline void compile() {} //invoked by bank_t() constructor to prevent optimizing out the preloader
+
+	};
+
+	static thread_local bankpreload_t g_preloader;	//preloading of number cache + memory manager at thread init
 
 	//
 	// local (per instatiation)
@@ -208,28 +318,29 @@ struct mathbankaccess_t {
 };
 
 template <typename T, int S, typename CBT>
-thread_local char mathbankaccess_t<T,S,CBT>::bankentry_t::g_strbuffer[BIGMATHSTRBUFFERMAX*BIGMATHSTRQUEUEMAX];
+thread_local char 														mathbankaccess_t<T,S,CBT>::bankentry_t::g_strbuffer[BIGMATHSTRBUFFERMAX*BIGMATHSTRQUEUEMAX];
 
 template <typename T, int S, typename CBT>
-thread_local int mathbankaccess_t<T,S,CBT>::bankentry_t::g_strbufferpos = 0;
+thread_local int 														mathbankaccess_t<T,S,CBT>::bankentry_t::g_strbufferpos = 0;
 
 template <typename T, int S, typename CBT>
-thread_local linkbase<typename mathbankaccess_t<T,S,CBT>::bank_t> mathbankaccess_t<T,S,CBT>::bank_t::g_base;
+thread_local typename mathbankaccess_t<T,S,CBT>::bankentry_t 			*mathbankaccess_t<T,S,CBT>::bank_t::g_cache[CACHESIZE];
 
 template <typename T, int S, typename CBT>
-thread_local linkbase<typename mathbankaccess_t<T,S,CBT>::bank_t> mathbankaccess_t<T,S,CBT>::bank_t::g_freebase;
+thread_local unsigned int 												mathbankaccess_t<T,S,CBT>::bank_t::g_cachestore=0;
 
-//
-// helper routines to minimize template code and optimize resulting assembly
-//
+template <typename T, int S, typename CBT>
+thread_local unsigned int 												mathbankaccess_t<T,S,CBT>::bank_t::g_cachefetch=0;
 
-namespace _bigmath_compile {
-	constexpr bool 			isneg( int a ) 			{ return(a<0?true:false); 				}
-	constexpr unsigned int 	constabs( int a ) 		{ return(a<0?-a:a); 					}
-	constexpr unsigned int 	modcastszup( int a ) 	{ return constabs(a)*BIGMATHMODSCALE; 	}
-	constexpr unsigned int 	modcastszdown( int a ) 	{ return constabs(a)/BIGMATHMODSCALE; 	}
-	constexpr unsigned int	modpow2calc( int a ) 	{ return isneg(a)?constabs(a):0; 		}
-}
+template <typename T, int S, typename CBT>
+thread_local linkbase<typename mathbankaccess_t<T,S,CBT>::bank_t> 		mathbankaccess_t<T,S,CBT>::bank_t::g_base;
+
+template <typename T, int S, typename CBT>
+thread_local linkbase<typename mathbankaccess_t<T,S,CBT>::bank_t> 		mathbankaccess_t<T,S,CBT>::bank_t::g_freebase;
+
+template <typename T, int S, typename CBT>
+thread_local typename mathbankaccess_t<T,S,CBT>::bankpreload_t 			mathbankaccess_t<T,S,CBT>::g_preloader;
+
 
 //
 // uint code
@@ -260,7 +371,7 @@ struct biguint_t {
 
 	//user routines
 	#define make(e,v) { e=mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::allocnode(); v=e->m_v; }
-	#define kill(e)   if(e) { e->m_bank->freenode(e); }
+	#define kill(e)   if(e) { mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::freenode(e); }
 
 		inline void _init() 												{ SAFE() make(b.m_e,b.m_v)   make(b.m_etmp,b.m_vtmp) }
 	inline ~biguint_t() 													{ SAFE() kill(b.m_e)         kill(b.m_etmp)          }
@@ -281,7 +392,7 @@ struct biguint_t {
 	inline biguint_t( const bigmod_t<_S1> &rhs )							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
 	inline biguint_t( const bigmod_t<_S2> &rhs )							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
 	inline biguint_t( const bigmod_t<_S3> &rhs )							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
-	inline biguint_t( const bigmod_t<_S4> &rhs )							{ _init(); this->operator=(rhs); }
+	inline biguint_t( const bigmod_t<_S4> &rhs )							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
 
 	inline 		 int 				operator=( int val ) 					{ SAFE() mpz_set_ui(b.m_v[0],(unsigned long int)val); return(val); }
 	inline 	     mpz_t* 			operator=( const mpz_t *rhs )			{ SAFE() mpz_set(b.m_v[0],rhs[0]);  return(b.m_v); }
@@ -440,7 +551,7 @@ struct bigint_t : biguint_t<S> {
 	inline bigint_t() : biguint_t<S>()									{}							//cppcheck-suppress noExplicitConstructor
 	inline bigint_t( int val ) : biguint_t<S>() 		 				{ this->operator=(val); }	//cppcheck-suppress noExplicitConstructor
 	inline bigint_t( const mpz_t *rhs ) : biguint_t<S>( rhs ) 			{}							//cppcheck-suppress noExplicitConstructor
-	inline bigint_t( const bigint_t  &rhs ) : biguint_t<S>( rhs ) 		{}
+	inline bigint_t( const bigint_t  &rhs ) : biguint_t<S>( rhs ) 		{}							//cppcheck-suppress noExplicitConstructor
 
 	inline 		 int 			operator=( int val ) 					{ SAFE() mpz_set_si( this->b.m_v[0], val ); return(val); }
 	inline 	 	 mpz_t* 		operator=( const mpz_t *rhs )			{ _upcast()->operator=(rhs); return(this->b.m_v); }
@@ -513,7 +624,7 @@ struct bigfrac_t {
 
 	//user routines
 	#define make(e,v) e=mathbankaccess_t<mpq_t,S,bigfrac_t<S>>::bank_t::allocnode(); v=e->m_v;
-	#define kill(e)   if(e) { e->m_bank->freenode(e); }
+	#define kill(e)   if(e) { mathbankaccess_t<mpq_t,S,bigfrac_t<S>>::bank_t::freenode(e); }
 
 		inline void _init() 											{ SAFE() make(b.m_e,b.m_v)   make(b.m_etmp,b.m_vtmp) }
 	inline ~bigfrac_t() 												{ SAFE() kill(b.m_e)         kill(b.m_etmp)          }
@@ -526,7 +637,7 @@ struct bigfrac_t {
 	inline bigfrac_t( const double &val )  								{ _init(); this->operator=(val); }	//cppcheck-suppress noExplicitConstructor
 	inline bigfrac_t( const mpz_t *rhs )  								{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
 	inline bigfrac_t( const mpq_t *rhs )  								{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
-	inline bigfrac_t( const bigfrac_t<S> &rhs )  						{ _init(); this->operator=(rhs); }
+	inline bigfrac_t( const bigfrac_t<S> &rhs )  						{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
 
 	inline 		 int operator=( int val ) 								{ SAFE() mpq_set_si(b.m_v[0],val,1); 		return(val); }
 	inline const double& operator=( const double &val ) 				{ SAFE() mpq_set_d(b.m_v[0],val);    		return(val); }
@@ -534,8 +645,9 @@ struct bigfrac_t {
 	inline  	 mpq_t* operator=( const mpq_t *rhs ) 					{ SAFE() mpq_set(b.m_v[0],rhs[0]);   		return(b.m_v); }
 	inline       bigfrac_t<S>& operator=( const bigfrac_t<S> &rhs )		{ SAFE() mpq_set(b.m_v[0],rhs.b.m_v[0]); 	return(*this); }	//overload to avoid structure copy errors
 
-		inline void _neg()		 										{ SAFE() mpq_neg(b.m_v[0],b.m_v[0]); }
-		inline void _abs()		 										{ SAFE() mpq_abs(b.m_v[0],b.m_v[0]); }
+		inline void 			_neg()		 							{ SAFE() mpq_neg(b.m_v[0],b.m_v[0]); }
+		inline void 			_abs()		 							{ SAFE() mpq_abs(b.m_v[0],b.m_v[0]); }
+		inline bigfrac_t<S>& 	_inverse()		 						{ SAFE() mpz_swap( mpq_numref(b.m_v[0]), mpq_denref(b.m_v[0]) ); return(this[0]); }
 
 		inline void _add( const mpz_t *rhs ) 							{ SAFE() bigfrac_t _rhs(rhs); this->_add(_rhs.b.m_v); }
 		inline void _sub( const mpz_t *rhs ) 							{ SAFE() bigfrac_t _rhs(rhs); this->_sub(_rhs.b.m_v); }
@@ -584,7 +696,7 @@ struct bigfrac_t {
 	inline explicit operator 		double () 					const 	{ SAFE() return(mpq_get_d(b.m_v[0]));  				}
 	inline explicit operator 		unsigned int () 			const 	{ SAFE() return((unsigned int)mpq_get_d(b.m_v[0])); }
 	inline explicit operator 		int () 						const 	{ SAFE() return((int)mpq_get_d(b.m_v[0])); 			}
-	//operator const return of mpq_t is to prevent resolution ambiguity introduced by non-const
+	//operator const mpq_t* () <- prevents ambiguity
 
 	operator const char*() const {
 		SAFE()
@@ -596,6 +708,7 @@ struct bigfrac_t {
 	//special routines
 
 	inline bigfrac_t<S> abs() 									const	{ SAFE() bigfrac_t<S> r; mpq_abs(r.b.m_v[0],b.m_v[0]); return(r); }
+	inline bigfrac_t<S> inverse()		 						const 	{ SAFE() bigfrac_t<S> r(this[0]); return(r._inverse()); }
 
 	bigint_t<S> round() const { 
 		SAFE();
@@ -662,7 +775,7 @@ struct bigmod_t : biguint_t<_S> {
 			inline void _killnode( bankentry_t *ee )  const {
 				if(ee==g_defmodptr) g_defmodptr=0;
 				if(pow2bits>0) 		ee->m_maske->m_bank->freenode(ee->m_maske);
-				ee->m_bank->freenode(ee);
+				mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bank_t::freenode(ee);
 			}
 
 			inline bankentry_t* _initpow2mod( bankentry_t *r ) {
@@ -778,26 +891,26 @@ struct bigmod_t : biguint_t<_S> {
 	// additional modular specific routines
 	//
 
-		inline bigmod_t<S>& _inverse() 														{ mpz_invert(  this->b.m_vtmp[0], this->b.m_v[0], 		  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
-		inline bigmod_t<S>& _pow( const mpz_t *rhs )										{ mpz_powm(    this->b.m_vtmp[0], this->b.m_v[0], rhs[0], m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
-		inline bigmod_t<S>& _pow( int rhs )													{ mpz_powm_ui( this->b.m_vtmp[0], this->b.m_v[0], rhs, 	  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
+		inline bigmod_t<S>& _inverse() 														{ SAFE() mpz_invert(  this->b.m_vtmp[0], this->b.m_v[0], 		  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
+		inline bigmod_t<S>& _pow( const mpz_t *rhs )										{ SAFE() mpz_powm(    this->b.m_vtmp[0], this->b.m_v[0], rhs[0], m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
+		inline bigmod_t<S>& _pow( int rhs )													{ SAFE() mpz_powm_ui( this->b.m_vtmp[0], this->b.m_v[0], rhs, 	  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
 
 	inline bigmod_t<S> inverse() 													const	{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._inverse()); }
 	inline bigmod_t<S> pow( const mpz_t *rhs )										const	{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._pow(rhs));  }
 	inline bigmod_t<S> pow( int rhs )												const	{ SAFE() bigmod_t<S> _rhs(this[0]); return(_rhs._pow(rhs));  }
 
 	inline 			void 			changemod( const mpz_t *rhs ) 							{ SAFE() _changemod(&m_modptr,_genmod(rhs)); _dirty(); }
-	inline 			void 			changemod( bankentry_t &rhs ) 							{ SAFE() _changemod(&m_modptr,rhs[0]); _dirty(); }
+	inline 			void 			changemod( bankentry_t &rhs ) 							{ SAFE() _changemod(&m_modptr,&rhs); _dirty(); }
 	inline 		 	void 			copyraw( mpz_t *target )						const 	{ SAFE() _copycleanraw(target); }
 	inline 			bankentry_t&	getmodentry() 									const 	{ SAFE() return(m_modptr[0]); }
 	inline 			mpz_t*			getmod() 										const 	{ SAFE() return(m_modptr->raw()); }
 
 	//chinese remainder optimized for big numbers - avoids big multiplies and big modulus reductions
 	//	this form may favor r/wordsize > sz
-	static biguint_t<_S> crt_scratch( bigmod_t *v, int sz, bigmod_t *s1, bigmod_t *s2 ) {
+	static biguint_t<S> crt_scratch( bigmod_t *v, int sz, bigmod_t *s1, bigmod_t *s2 ) {
 		int x, y;
 		bigmod_t delta;
-		biguint_t<_S> r(v[0]), scale(1);
+		biguint_t<S> r(v[0]), scale(1);
 		for(x=1;x<sz;x++) {
 			s1[x] = bigmod_t( v[0],			 	  v[x].getmodentry() );		//set all moduli to value in first mod
 			s2[x] = bigmod_t( v[0].getmodentry(), v[x].getmodentry() );		//set all multipliers for all moduli to first mod

@@ -53,6 +53,7 @@ inline bool operator<( const biguint_t<S> &lhs, const mpq_t *rhs ) 						{ retur
 template <int S>
 inline bool operator<=( const biguint_t<S> &lhs, const mpq_t *rhs ) 					{ return lhs._lte(rhs);  }
 
+/*
 template <int S>
 inline bigfrac_t<S> operator+( const biguint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs+=rhs; return(_lhs); }
 
@@ -64,6 +65,22 @@ inline bigfrac_t<S> operator*( const biguint_t<S> &lhs, const mpq_t *rhs ) 				{
 
 template <int S>
 inline bigfrac_t<S> operator/( const biguint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs/=rhs; return(_lhs); }
+*/
+
+template <int S>
+inline bigfrac_t<S> operator+( const mpz_t *lhs, bigfrac_t<S> rhs ) 					{ rhs+=lhs; return(rhs); }
+
+template <int S>
+inline bigfrac_t<S> operator-( const mpz_t *lhs,  bigfrac_t<S> rhs ) 					{ rhs._neg(); rhs+=lhs; return(rhs); }
+
+template <int S>
+inline bigfrac_t<S> operator*( const mpz_t *lhs,  bigfrac_t<S> rhs ) 					{ rhs*=lhs; return(rhs); }
+
+//template <int S>
+//inline bigfrac_t<S> operator/( const biguint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs/=rhs; return(_lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator/( const mpz_t *lhs,  bigfrac_t<S> rhs ) 					{ rhs._inverse()*=lhs; return(rhs);  }
 
 
 //biguint overloads
@@ -239,6 +256,7 @@ inline bool operator<( const bigint_t<S> &lhs, const mpq_t *rhs ) 						{ return
 template <int S>
 inline bool operator<=( const bigint_t<S> &lhs, const mpq_t *rhs ) 						{ return lhs._lte(rhs);  }
 
+/*
 template <int S>
 inline bigfrac_t<S> operator+( const bigint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs+=rhs; return(_lhs); }
 
@@ -250,6 +268,24 @@ inline bigfrac_t<S> operator*( const bigint_t<S> &lhs, const mpq_t *rhs ) 				{ 
 
 template <int S>
 inline bigfrac_t<S> operator/( const bigint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs/=rhs; return(_lhs); }
+*/
+
+//warning: is not left-hand of mpz_t as this is already caught by uint overloads and conflicts
+
+template <int S>
+inline bigfrac_t<S> operator+( const bigint_t<S> &lhs, bigfrac_t<S> rhs ) 				{ rhs+=lhs; return(rhs); }
+
+template <int S>
+inline bigfrac_t<S> operator-( const bigint_t<S> &lhs, bigfrac_t<S> rhs ) 				{ rhs._neg(); rhs+=lhs; return(rhs); }
+
+template <int S>
+inline bigfrac_t<S> operator*( const bigint_t<S> &lhs, bigfrac_t<S> rhs ) 				{ rhs*=lhs; return(rhs); }
+
+//template <int S>
+//inline bigfrac_t<S> operator/( const bigint_t<S> &lhs, const mpq_t *rhs ) 				{ bigfrac_t<S>  _lhs(lhs); _lhs/=rhs; return(_lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator/( const bigint_t<S> &lhs, bigfrac_t<S> rhs ) 				{ rhs._inverse()*=lhs; return(rhs); }
 
 
 //biginteger overloads
@@ -530,8 +566,11 @@ inline bigfrac_t<S> operator-( const double &lhs, bigfrac_t<S> rhs ) 					{ rhs.
 template <int S>
 inline bigfrac_t<S> operator*( const double &lhs, bigfrac_t<S> rhs ) 					{ rhs*=lhs; return(rhs); }
 
+//template <int S>
+//inline bigfrac_t<S> operator/( const double &lhs, const bigfrac_t<S> &rhs )				{ bigfrac_t<S> _lhs(lhs); _lhs/=rhs; return(_lhs); }
+
 template <int S>
-inline bigfrac_t<S> operator/( const double &lhs, const bigfrac_t<S> &rhs )				{ bigfrac_t<S> _lhs(lhs); _lhs/=rhs; return(_lhs); }
+inline bigfrac_t<S> operator/( const double &lhs, bigfrac_t<S> rhs ) 					{ rhs._inverse()*=lhs; return(rhs); }
 
 
 //
@@ -565,6 +604,7 @@ inline bool operator<( bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(
 template <int S>
 inline bool operator<=( bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._lte(rhs);  }
 
+/*
 template <int S>
 inline bigfrac_t<S> operator+( bigmod_t<S> &lhs, const mpq_t *rhs ) 					{ lhs._clean(); bigfrac_t<S>  _lhs(lhs); _lhs+=rhs; return(_lhs); }
 
@@ -576,6 +616,24 @@ inline bigfrac_t<S> operator*( bigmod_t<S> &lhs, const mpq_t *rhs ) 					{ lhs._
 
 template <int S>
 inline bigfrac_t<S> operator/( bigmod_t<S> &lhs, const mpq_t *rhs ) 					{ lhs._clean(); bigfrac_t<S>  _lhs(lhs); _lhs/=rhs; return(_lhs); }
+*/
+
+//warning: is not left-hand of mpz_t as this is already caught by uint overloads and conflicts
+
+template <int S>
+inline bigfrac_t<S> operator+( bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs+=lhs; return(rhs); }
+
+template <int S>
+inline bigfrac_t<S> operator-( bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs._neg(); rhs+=lhs; return(rhs); }
+
+template <int S>
+inline bigfrac_t<S> operator*( bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs*=lhs; return(rhs); }
+
+//template <int S>
+//inline bigfrac_t<S> operator/( bigmod_t<S> &lhs, const mpq_t *rhs ) 					{ lhs._clean(); bigfrac_t<S>  _lhs(lhs); _lhs/=rhs; return(_lhs); }
+
+template <int S>
+inline bigfrac_t<S> operator/( bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs._inverse()*=lhs; return(rhs); }
 
 
 //standard operators
@@ -757,16 +815,16 @@ template <int S>
 inline bool operator<=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false); }
 
 template <int S>
-inline bigfrac_t<S> operator+( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
+inline bigfrac_t<S> operator+( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ bigfrac_t<S> rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
 
 template <int S>
-inline bigfrac_t<S> operator-( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
+inline bigfrac_t<S> operator-( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ bigfrac_t<S> rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
 
 template <int S>
-inline bigfrac_t<S> operator*( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
+inline bigfrac_t<S> operator*( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ bigfrac_t<S> rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
 
 template <int S>
-inline bigfrac_t<S> operator/( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
+inline bigfrac_t<S> operator/( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ bigfrac_t<S> rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
 
 
 //standard operators
@@ -830,7 +888,6 @@ inline bool operator<( _UNUSED_ const int lhs, _UNUSED_ const bigmod_t<S> &rhs )
 
 template <int S>
 inline bool operator<=( _UNUSED_ const int lhs, _UNUSED_ const bigmod_t<S> &rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false); }
-
 
 #undef _DO_NOT_USE_CONSTANT_MODULARS_
 

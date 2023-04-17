@@ -73,7 +73,7 @@ struct __memsafe_st {
 	__memsafe_pk 	m_pk = &typeid(nm);
 
 	__memsafe_st() 							{}	//cppcheck-suppress noExplicitConstructor
-	__memsafe_st( const __memsafe_st &rh )  {
+	__memsafe_st( const __memsafe_st &rh )  {	//cppcheck-suppress noExplicitConstructor
 		throw std::runtime_error("Potentially unsafe copy of structure. Halting.");
 	}
 

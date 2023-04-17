@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="neopeer-cli" Version="10.0.0" InternalType="Console">
+<CodeLite_Project Name="neopeer-cli" Version="11000" InternalType="Console">
   <VirtualDirectory Name="unit.tests">
     <File Name="../../../../../source/unit.tests/main.cpp" ExcludeProjConfig="Release;Debug;"/>
   </VirtualDirectory>
@@ -25,7 +25,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O0;-Wall;-Wextra;-Werror;-pedantic;" C_Options="-g;-O0;-Wall;-Wextra;-Werror;-pedantic;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O0;-Wall;-Wextra;-Werror;-pedantic;-std=c++20" C_Options="-g;-O0;-Wall;-Wextra;-Werror;-pedantic;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes">
@@ -68,7 +68,7 @@
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-O3;-Wall;-Wextra;-Werror;-pedantic;" C_Options="-O3;-Wall;-Wextra;-Werror;-pedantic;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-O3;-Wall;-Wextra;-Werror;-pedantic;-std=c++20" C_Options="-O3;-Wall;-Wextra;-Werror;-pedantic;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
