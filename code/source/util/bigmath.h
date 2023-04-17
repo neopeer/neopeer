@@ -44,8 +44,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 //			 double * frac_t = frac_t
 //			 frac_t * int    = frac_t
 
-//TODO: Change to right-hand operators of non-casted types for certain functions if it avoids a forced copy
-
 #ifndef BIGMATH_H
 #define BIGMATH_H
 

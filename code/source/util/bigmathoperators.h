@@ -815,16 +815,16 @@ template <int S>
 inline bool operator<=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false); }
 
 template <int S>
-inline bigfrac_t<S> operator+( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ bigfrac_t<S> rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
+inline bigfrac_t<S> operator+( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
 
 template <int S>
-inline bigfrac_t<S> operator-( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ bigfrac_t<S> rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
+inline bigfrac_t<S> operator-( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
 
 template <int S>
-inline bigfrac_t<S> operator*( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ bigfrac_t<S> rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
+inline bigfrac_t<S> operator*( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
 
 template <int S>
-inline bigfrac_t<S> operator/( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ bigfrac_t<S> rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
+inline bigfrac_t<S> operator/( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigfrac_t<S>()); }
 
 
 //standard operators
@@ -847,47 +847,17 @@ inline bool operator<( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rh
 template <int S>
 inline bool operator<=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false); }
 
-
-//int rhs overloads
+template <int S>
+inline bigmod_t<S> operator+( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs  ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigmod_t<S>()); }
 
 template <int S>
-inline bool operator!=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const int rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false);  }
+inline bigmod_t<S> operator-( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs  ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigmod_t<S>()); }
 
 template <int S>
-inline bool operator==( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const int rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false);  }
+inline bigmod_t<S> operator*( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs  ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigmod_t<S>()); }
 
 template <int S>
-inline bool operator>( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const int rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false);  }
-
-template <int S>
-inline bool operator>=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const int rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false);  }
-
-template <int S>
-inline bool operator<( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const int rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false);  }
-
-template <int S>
-inline bool operator<=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const int rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false);  }
-
-
-//int lhs overloads
-
-template <int S>
-inline bool operator!=( _UNUSED_ const int lhs, _UNUSED_ const bigmod_t<S> &rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false); }
-
-template <int S>
-inline bool operator==( _UNUSED_ const int lhs, _UNUSED_ const bigmod_t<S> &rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false); }
-
-template <int S>
-inline bool operator>( _UNUSED_ const int lhs, _UNUSED_ const bigmod_t<S> &rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false); }
-
-template <int S>
-inline bool operator>=( _UNUSED_ const int lhs, _UNUSED_ const bigmod_t<S> &rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false); }
-
-template <int S>
-inline bool operator<( _UNUSED_ const int lhs, _UNUSED_ const bigmod_t<S> &rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false); }
-
-template <int S>
-inline bool operator<=( _UNUSED_ const int lhs, _UNUSED_ const bigmod_t<S> &rhs ) 						{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(false); }
+inline bigmod_t<S> operator/( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs ) 				{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); throw std::runtime_error(); return(bigmod_t<S>()); }
 
 #undef _DO_NOT_USE_CONSTANT_MODULARS_
 
