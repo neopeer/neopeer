@@ -248,3 +248,15 @@ class BlindingsAndInverses:
 		self.iblind = inverseCRT(self.blind, primelist)  # accelerated using CRT (using primelist over primes)
 		self.i3 = inverseCRT(3, primelist)              # accelerated using CRT (using primelist over primes)
 		self.unblind = (self.iblind * self.i3) % primes
+class SIndex:
+	def __init__(self, value):
+		self.value = value
+		if self.value == 1:
+			self.s1 = -2
+			self.s2 = 1
+		elif self.value == 2:
+			self.s1 = 1
+			self.s2 = -2
+		else:
+			self.s1 = 1
+			self.s2 = 1
