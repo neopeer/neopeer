@@ -240,7 +240,6 @@ class BlindingsAndInverses:
 		self.iblind = inverseCRT(self.blind, primelist)  # accelerated using CRT (using primelist over primes)
 		self.i3 = inverseCRT(3, primelist)              # accelerated using CRT (using primelist over primes)
 		self.unblind = (self.iblind * self.i3) % primes
-"""
 class SIndex:
 	def __init__(self, value):
 		self.value = value
@@ -253,6 +252,7 @@ class SIndex:
 		else:
 			self.s1 = 1
 			self.s2 = 1
+"""
 class ModulusPower:
 	def __init__(self, qspace, b, coset, qprime, blind, primes, s1, s2, n):
 		self.qspace = qspace
