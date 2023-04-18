@@ -228,12 +228,12 @@ class Security:
 		self.pow2sig = 2**(pow2bits+self.sigbuffbits)
 		self.MASKH = (self.pow2sig-1)-(self.kbits-1)
 		self.pow2sigbits = (self.pow2bits+self.sigbuffbits)
-"""
 #tiny class to replace the FastMask below.
 class FastMasks:
 	def __init__(self, pow2, pow2sig):
 		self.p2mask = pow2 - 1
 		self.p2sigmask = pow2sig - 1
+"""
 class BlindingsAndInverses:
 	def __init__(self, coset, primelist,primes):
 		self.b = srand(coset)
