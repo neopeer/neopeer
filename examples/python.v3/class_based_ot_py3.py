@@ -119,7 +119,6 @@ class PolynomialVerifier:
 				print(sigunpad(self.Bacc[pindex]))
 				print("ERROR: Polynomial checking has failed. Stopping.")
 				sys.exit()
-"""
 #Another huge class this time for making POLYS
 class PolynomialGenerator:
 	def __init__(self, decodekeys, polycount, sigcoefficientmax, blockcount, SUM, D1, D2, pow2sig):
@@ -162,7 +161,6 @@ class PolynomialGenerator:
 				print("ERROR: D2POLY overflow. Stopping.")
 				sys.exit()
 		return POLYS
-
 #
 class PrepCarryInformation:
 	def __init__(self, b0, b1, b2, n, pow2sigbits, pow2):
@@ -215,7 +213,7 @@ class PrepCarryInformation:
 		if error: 
 			print("Sample 3 - Sanity check failed. Stopping.")
 			sys.exit()
-
+"""
 
 #Terrible hacky class to move all this crypto code into 1 class
 class Security:
@@ -325,7 +323,7 @@ for pindex in range(0,polycount):
 		P.D2POLY  += (X)(B.D2)  ;should not exceed (pow2sig)
 """
 
-polynomial_generator = PolynomialGenerator(decodekeys, polycount, sigcoefficientmax, blockcount, SUM, D1, D2, pow2sig)
+polynomial_generator = PolynomialGenerator(decodekeys, polycount, sigcoefficientmax, blockcount, SUM, D1, D2, pow2sig, sigbuffbits)
 POLYS = polynomial_generator.generate_polynomials()
 
 #
@@ -371,7 +369,7 @@ b0, b1, b2 = modpowers.generate_random_numbers()
 
 carry_info = PrepCarryInformation(b0, b1, b2, n, pow2sigbits, pow2)
 carry_info.prepare_carry_information()
-carry_info.run_sanity_check()
+carry_info.run_sanity_check(sanitycheck)
 B0 = carry_info.B0
 B1 = carry_info.B1
 B2 = carry_info.B2

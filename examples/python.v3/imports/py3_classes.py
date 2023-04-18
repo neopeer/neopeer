@@ -127,3 +127,95 @@ class PolynomialVerifier:
 				print(sigunpad(self.Bacc[pindex]))
 				print("ERROR: Polynomial checking has failed. Stopping.")
 				sys.exit()
+#Another huge class this time for making POLYS
+class PolynomialGenerator:
+	def __init__(self, decodekeys, polycount, sigcoefficientmax, blockcount, SUM, D1, D2, pow2sig, sigbuffbits):
+		self.decodekeys = decodekeys
+		self.polycount = polycount
+		self.sigcoefficientmax = sigcoefficientmax
+		self.blockcount = blockcount
+		self.SUM = SUM
+		self.D1 = D1
+		self.D2 = D2
+		self.pow2sig = pow2sig
+		self.sigbuffbits = sigbuffbits
+		
+	def generate_polynomials(self):
+		POLYS = []
+		for pindex in range(self.polycount):
+			hashing_tools_instance = HashingTools(self.sigbuffbits)
+			m = hashing_tools_instance.get_ranged_prime(hash256sum(self.decodekeys,pindex), self.sigcoefficientmax)
+			x = hash256sum(self.decodekeys,pindex,m) % m
+
+			POLYS.append(PolyClass(m,x))
+			P = POLYS[pindex]
+			P.SUMPOLY = 0
+			P.D1POLY  = 0
+			P.D2POLY  = 0
+			X = x
+
+			for i in range(self.blockcount):
+				P.SUMPOLY += X*self.SUM[i] #should not overflow pow2sig
+				P.D1POLY  += X*self.D1[i]  #should not overflow pow2sig
+				P.D2POLY  += X*self.D2[i]  #should not overflow pow2sig
+				X = (X*x)%m
+
+			if P.SUMPOLY > self.pow2sig:
+				print("ERROR: SUMPOLY overflow. Stopping.")
+				sys.exit()
+			if P.D1POLY > self.pow2sig:
+				print("ERROR: D1POLY overflow. Stopping.")
+				sys.exit()
+			if P.D2POLY > self.pow2sig:
+				print("ERROR: D2POLY overflow. Stopping.")
+				sys.exit()
+		return POLYS
+class PrepCarryInformation:
+	def __init__(self, b0, b1, b2, n, pow2sigbits, pow2):
+		self.b0 = b0
+		self.b1 = b1
+		self.b2 = b2
+		self.n = n
+		self.pow2sigbits = pow2sigbits
+		self.pow2 = pow2
+		self.inn = inverse(-n, pow2)
+		self.p2mask = (pow2 - 1)
+		self.pow2sig = 2 ** (pow2sigbits + 1)
+		self.MASKH = (self.pow2sig - 1) - (self.n.bit_length() - 1)
+
+	def prepare_carry_information(self):
+		self.B0 = (self.b0*self.inn)&self.p2mask
+		self.B1 = (self.b1*self.inn)&self.p2mask
+		self.B2 = (self.b2*self.inn)&self.p2mask
+
+		self.F0 = ((self.b0 << self.pow2sigbits)//self.n) & self.MASKH
+		self.F1 = ((self.b1 << self.pow2sigbits)//self.n) & self.MASKH
+		self.F2 = ((self.b2 << self.pow2sigbits)//self.n) & self.MASKH
+
+	def run_sanity_check(self, sanitycheck):
+		self.sanitycheck = sanitycheck
+		if not self.sanitycheck:
+			return
+		getcontext().prec = ceil(log10(2**self.pow2sigbits))+1
+		B0test = (self.b0*self.inn)%self.pow2
+		B1test = (self.b1*self.inn)%self.pow2
+		B2test = (self.b2*self.inn)%self.pow2
+		F0test = int(Decimal(self.b0)/Decimal(self.n) * self.pow2sig) & self.MASKH
+		F1test = int(Decimal(self.b1)/Decimal(self.n) * self.pow2sig) & self.MASKH
+		F2test = int(Decimal(self.b2)/Decimal(self.n) * self.pow2sig) & self.MASKH
+		error = False
+		if B0test != self.B0: 
+			error = True
+		if B1test != self.B1: 
+			error = True
+		if B2test != self.B2: 
+			error = True
+		if F0test != self.F0: 
+			error = True
+		if F1test != self.F1: 
+			error = True
+		if F2test != self.F2: 
+			error = True
+		if error: 
+			print("Sample 3 - Sanity check failed. Stopping.")
+			sys.exit()
