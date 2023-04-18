@@ -233,7 +233,6 @@ class FastMasks:
 	def __init__(self, pow2, pow2sig):
 		self.p2mask = pow2 - 1
 		self.p2sigmask = pow2sig - 1
-"""
 class BlindingsAndInverses:
 	def __init__(self, coset, primelist,primes):
 		self.b = srand(coset)
@@ -241,6 +240,7 @@ class BlindingsAndInverses:
 		self.iblind = inverseCRT(self.blind, primelist)  # accelerated using CRT (using primelist over primes)
 		self.i3 = inverseCRT(3, primelist)              # accelerated using CRT (using primelist over primes)
 		self.unblind = (self.iblind * self.i3) % primes
+"""
 class SIndex:
 	def __init__(self, value):
 		self.value = value
