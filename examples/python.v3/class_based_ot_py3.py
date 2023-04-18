@@ -213,8 +213,6 @@ class PrepCarryInformation:
 		if error: 
 			print("Sample 3 - Sanity check failed. Stopping.")
 			sys.exit()
-"""
-
 #Terrible hacky class to move all this crypto code into 1 class
 class Security:
 	def __init__(self, primebits, sigcoefficientmaxbits, pow2bits, kbits):
@@ -230,6 +228,7 @@ class Security:
 		self.pow2sig = 2**(pow2bits+self.sigbuffbits)
 		self.MASKH = (self.pow2sig-1)-(self.kbits-1)
 		self.pow2sigbits = (self.pow2bits+self.sigbuffbits)
+"""
 #tiny class to replace the FastMask below.
 class FastMasks:
 	def __init__(self, pow2, pow2sig):
@@ -265,7 +264,7 @@ class ModulusPower:
 		self.s1 = s1
 		self.s2 = s2
 		self.n = n
-		
+
 	def generate_random_numbers(self):
 		r0q = srand(self.qspace)
 		r1q = srand(self.qspace)
@@ -291,7 +290,7 @@ polycount				= 12					#coded for optimal bandwidth wasteage size
 braid_element_count 			= 3
 sigblockcount				= blockcount				#should be hard-coded to 3000 (see ot.spec.9)
 
-security = Security(128, 12, 8320, 128)
+security = Security(128, sigblockcount, braid_element_count, 12, 8320, 128)
 #variables need to be pulled out for now will make another pass to get them called straight from the class later.
 sigcoefficientmax=security.sigcoefficientmax
 pow2sig=security.pow2sig

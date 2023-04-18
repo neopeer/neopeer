@@ -219,3 +219,20 @@ class PrepCarryInformation:
 		if error: 
 			print("Sample 3 - Sanity check failed. Stopping.")
 			sys.exit()
+#Terrible hacky class to move all this crypto code into 1 class
+class Security:
+	def __init__(self, primebits, sigblockcount, braid_element_count, sigcoefficientmaxbits, pow2bits, kbits):
+		self.primebits = primebits
+		self.braid_element_count = braid_element_count
+		self.sigblockcount = sigblockcount
+		self.sigcoefficientmaxbits = sigcoefficientmaxbits
+		self.pow2bits = pow2bits
+		self.kbits = self.primebits
+		self.sigbuffbits = int(ceil(log2(self.sigblockcount+self.braid_element_count)+self.sigcoefficientmaxbits))
+		self.sigbuffbits += 26
+		self.sigbuff = 2**self.sigbuffbits
+		self.sigcoefficientmax = 2**sigcoefficientmaxbits
+		self.pow2 = 2**pow2bits
+		self.pow2sig = 2**(pow2bits+self.sigbuffbits)
+		self.MASKH = (self.pow2sig-1)-(self.kbits-1)
+		self.pow2sigbits = (self.pow2bits+self.sigbuffbits)
