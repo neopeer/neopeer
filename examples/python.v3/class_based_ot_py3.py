@@ -252,7 +252,6 @@ class SIndex:
 		else:
 			self.s1 = 1
 			self.s2 = 1
-"""
 class ModulusPower:
 	def __init__(self, qspace, b, coset, qprime, blind, primes, s1, s2, n):
 		self.qspace = qspace
@@ -276,6 +275,7 @@ class ModulusPower:
 		b1 = (CRT([self.blind, r1qpow], [self.primes, self.qprime]) * self.s1) % self.n
 		b2 = (CRT([self.blind, r2qpow], [self.primes, self.qprime]) * self.s2) % self.n
 		return b0, b1, b2
+"""
 
 
 #
