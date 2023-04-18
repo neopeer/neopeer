@@ -70,6 +70,7 @@ print("coset size in bits:", log2(coset))
 #
 ###############################################################################################
 #massive class for all the polynomical verification steps at the end. Likely candidate for breaking up later...
+"""
 class PolynomialVerifier:
 	def __init__(self, polycount, blockcount, storedB, POLYS):
 		self.polycount = polycount
@@ -118,6 +119,7 @@ class PolynomialVerifier:
 				print(sigunpad(self.Bacc[pindex]))
 				print("ERROR: Polynomial checking has failed. Stopping.")
 				sys.exit()
+"""
 #Another huge class this time for making POLYS
 class PolynomialGenerator:
 	def __init__(self, decodekeys, polycount, sigcoefficientmax, blockcount, SUM, D1, D2, pow2sig):
@@ -398,7 +400,7 @@ print("Sample 3 -",blockcount,"blocks... completed in",(timeit.default_timer()-s
 
 
 #>>> Verify blocks (proxy and possibly recipient)
-poly_verifier = PolynomialVerifier(polycount, blockcount, storedB,POLYS)
+poly_verifier = PolynomialVerifier(polycount, blockcount, storedB, POLYS, p2sigmask, p2mask, sigbuffbits, B0, B1, B2, F0, F1, F2, pow2bits)
 poly_verifier.verify()
 print("Sample 3 -",blockcount,"verification... completed in",(timeit.default_timer()-sampleclock),"seconds")
 
