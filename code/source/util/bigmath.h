@@ -820,7 +820,6 @@ struct biguint_t {
 		char *r = b.m_e->getstringmem();
 		mathpagingstr_t::g_strdefault.reset();
 		mathpagingstr_t::g_activeptr = &mathpagingstr_t::g_strdefault;
-		//mathpagingstr_t::g_activeptr = &mathpaging_t::g_default;
 		gmp_snprintf( r, BIGMATHSTRBUFFERMAX, "%Zd", b.m_v[0] ); 
 		mathpagingstr_t::g_activeptr = &mathpaging_t::g_default;
 		return r;
@@ -879,16 +878,18 @@ struct bigint_t : biguint_t<S> {
 	MATHCALL inline 	 	 mpz_t* 		operator=( const mpz_t *rhs )		{ _upcast()->operator=(rhs); return(this->b.m_v); }
 	MATHCALL inline       bigint_t<S> & 	operator=( const bigint_t<S> &rhs )	{ _upcast()->operator=(rhs); return(*this); } //overload to avoid structure copy errors
 
+		MATHCALL inline void _nop() 									const 	{}
+		MATHCALL inline int  _abs( const int rhs ) 						const 	{ SAFE() return(rhs>=0?rhs:-rhs); }
 		MATHCALL inline bool _eq( const int rhs ) 						const 	{ SAFE() return(mpz_cmp_si( this->b.m_v[0], rhs ) == 0);  }
 		MATHCALL inline bool _gt( const int rhs ) 						const 	{ SAFE() return(mpz_cmp_si( this->b.m_v[0], rhs ) > 0);  }
 		MATHCALL inline bool _gte( const int rhs ) 						const 	{ SAFE() return(mpz_cmp_si( this->b.m_v[0], rhs ) >= 0); }
 		MATHCALL inline bool _lt( const int rhs ) 						const 	{ SAFE() return(mpz_cmp_si( this->b.m_v[0], rhs ) < 0);  }
 		MATHCALL inline bool _lte( const int rhs ) 						const 	{ SAFE() return(mpz_cmp_si( this->b.m_v[0], rhs ) <= 0); }
-		MATHCALL inline void _add( const int rhs ) 								{ SAFE() bigint_t<S> r(rhs); this[0]+=r; } //invokes below += overload to forward to unsigned processing
-		MATHCALL inline void _sub( const int rhs ) 								{ SAFE() bigint_t<S> r(rhs); this[0]-=r; } //invokes below -= overload to forward to unsigned processing
+		MATHCALL inline void _add( const int rhs ) 								{ SAFE() if(rhs<0) mpz_sub_ui( this->b.m_v[0], this->b.m_v[0], -rhs ); else mpz_add_ui( this->b.m_v[0], this->b.m_v[0], rhs ); }
+		MATHCALL inline void _sub( const int rhs ) 								{ SAFE() if(rhs<0) mpz_add_ui( this->b.m_v[0], this->b.m_v[0], -rhs ); else mpz_sub_ui( this->b.m_v[0], this->b.m_v[0], rhs ); }
 		MATHCALL inline void _mul( const int rhs ) 								{ SAFE() mpz_mul_si( this->b.m_vtmp[0], this->b.m_v[0], rhs ); this->b.swap(); }
-		MATHCALL inline void _div( const int rhs ) 								{ SAFE() bigint_t<S> r(rhs); this[0]/=r; } //invokes below /= overload to forward to unsigned processing
-		MATHCALL inline void _mod( const int rhs ) 								{ SAFE() bigint_t<S> r(rhs); this[0]%=r; } //invokes below %= overload to forward to unsigned processing
+		MATHCALL inline void _div( const int rhs ) 								{ SAFE() _upcast()->_div(_abs(rhs)); rhs<0?this->_neg():_nop(); }
+		MATHCALL inline void _mod( const int rhs ) 								{ SAFE() _upcast()->_mod(_abs(rhs)); rhs<0?this[0]+=rhs:_nop(); }
 
 	MATHCALL inline void operator+=( const mpz_t *rhs )  						{ _upcast()->_add(rhs); }
 	MATHCALL inline void operator-=( const mpz_t *rhs )  						{ _upcast()->_sub(rhs); }
@@ -1030,7 +1031,6 @@ struct bigfrac_t {
 		char *r = b.m_e->getstringmem();
 		mathpagingstr_t::g_strdefault.reset();
 		mathpagingstr_t::g_activeptr = &mathpagingstr_t::g_strdefault;
-		//mathpagingstr_t::g_activeptr = &mathpaging_t::g_default;
 		gmp_snprintf( r, BIGMATHSTRBUFFERMAX, "%Qd", b.m_v[0] ); 
 		mathpagingstr_t::g_activeptr = &mathpaging_t::g_default;
 		return r;
@@ -1165,12 +1165,12 @@ struct bigmod_t : biguint_t<_S> {
 			MATHCALL inline void _markclean() 	{ m_modflags|=FLG_CLEAN; }
 			MATHCALL inline void _dirty() 		{ m_modflags&=(~FLG_CLEAN); }
 
-	MATHCALL inline bigmod_t( 									   			 ) 	: biguint_t<_S>(),	     					m_modptr(_getdefmod()),  		  m_modflags(0)	  	 	 	 {}	//cppcheck-suppress noExplicitConstructor
+	MATHCALL inline bigmod_t( 									   			 ) 	: biguint_t<_S>(),	     						m_modptr(_getdefmod()),  		  m_modflags(0)	  	 	 	 {}	//cppcheck-suppress noExplicitConstructor
 	MATHCALL inline bigmod_t( 							int d 		   		 ) 	: biguint_t<_S>(),      						m_modptr(_genmod(d)), 			  m_modflags(0)				 {}	//cppcheck-suppress noExplicitConstructor
 	MATHCALL inline bigmod_t( 							const mpz_t *d		 ) 	: biguint_t<_S>(),      						m_modptr(_genmod(d)), 			  m_modflags(0)				 {}	//cppcheck-suppress noExplicitConstructor
 	MATHCALL inline bigmod_t( int rhs, 				 	const mpz_t *d 		 ) 	: biguint_t<_S>( rhs ), 						m_modptr(_genmod(d)), 			  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
 	MATHCALL inline bigmod_t( int rhs, 				 	int d 		   		 ) 	: biguint_t<_S>( rhs ), 						m_modptr(_genmod(d)), 			  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
-	MATHCALL inline bigmod_t( const bigmod_t &rhs				  			 ) 	: biguint_t<_S>( rhs._upcast_const()[0] ),	m_modptr(_refmod(rhs.m_modptr)),  m_modflags(rhs.m_modflags) {} //cppcheck-suppress noExplicitConstructor
+	MATHCALL inline bigmod_t( const bigmod_t &rhs				  			 ) 	: biguint_t<_S>( rhs._upcast_const()[0] ),		m_modptr(_refmod(rhs.m_modptr)),  m_modflags(rhs.m_modflags) {} //cppcheck-suppress noExplicitConstructor
 	MATHCALL inline bigmod_t( int rhs,				 	const bankentry_t &d ) 	: biguint_t<_S>( rhs ), 						m_modptr(_refmod(&d)), 	 	  	  m_modflags(0) 			 {} //cppcheck-suppress noExplicitConstructor
 	MATHCALL inline bigmod_t( const mpz_t *rhs, 		const bankentry_t &d ) 	: biguint_t<_S>( rhs ), 						m_modptr(_refmod(&d)),		 	  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
 	MATHCALL inline bigmod_t( const mpz_t *rhs, 		const mpz_t *d 		 ) 	: biguint_t<_S>( rhs ), 						m_modptr(_genmod(d)), 			  m_modflags(0) 			 {} //cppcheck-suppress noExplicitConstructor
