@@ -22,10 +22,11 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #ifndef LINKEDLIST_H
 #define LINKEDLIST_H
 
-#include "memsafety.h"
-
-#if !defined(NDEBUG) || !defined(DISABLEMEMSAFETY)
+#if defined(NDEBUG) || defined(DISABLEMEMSAFETY)
+#define __ASSERT__(bl) {}
+#else
 #include <stdexcept>
+#define __ASSERT__(bl) assert(bl)
 #endif
 
 //
@@ -40,17 +41,17 @@ struct linkitem
 	T 			*m_obj;
 	linkitem 	*m_next, *m_prev;
 
-#if !defined(NDEBUG) && !defined(DISABLEMEMSAFETY)
+#if !(defined(NDEBUG) || defined(DISABLEMEMSAFETY))
 //cppcheck-suppress operatorEqShouldBeLeftUnimplemented
 	linkitem& operator=( _UNUSED_ const linkitem &rh ) {
 		m_obj = 0;
 		m_next = m_prev = 0;
-		throw std::runtime_error("Potentially unsafe copy of structure. Halting.");
+		printf("Potentially unsafe copy of structure. Halting.\n"); throw std::runtime_error();
 	}
 
 //cppcheck-suppress noExplicitConstructor
 	linkitem( _UNUSED_ const linkitem &rh ) : m_obj(0), m_next(0), m_prev(0) {
-		throw std::runtime_error("Potentially unsafe copy of structure. Halting.");
+		printf("Potentially unsafe copy of structure. Halting.\n"); throw std::runtime_error();
 	}
 #endif
 
@@ -152,7 +153,7 @@ struct linkitem_single
 	T 				*m_obj;
 	linkitem_single *m_prev;
 
-#if !defined(NDEBUG) && !defined(DISABLEMEMSAFETY)
+#if !(defined(NDEBUG) || defined(DISABLEMEMSAFETY))
 //cppcheck-suppress operatorEqShouldBeLeftUnimplemented
 	linkitem_single& operator=( _UNUSED_ const linkitem_single &rh ) {
 		m_obj = 0;
@@ -188,7 +189,7 @@ struct linkbase_single
 	}
 
 	inline void remove( linkitem_single<T> *item ) {
-		//assert(m_last==item);
+		__ASSERT__(m_last==item);
 		m_last = item->m_prev;
 	}
 
@@ -229,5 +230,6 @@ struct linkbase_single
 
 };
 
+#undef __ASSERT__
 
 #endif

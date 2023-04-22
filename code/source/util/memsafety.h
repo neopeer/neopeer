@@ -27,7 +27,10 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 #if defined(NDEBUG) || defined(DISABLEMEMSAFETY)
 
 #define SAFEHEAD(nm)
-#define SAFE()
+#define SAFE()			{}
+#define HALTCOMPILE()	{}
+#define THROW(msg)		{}
+#define ASSERT(bl)		{}
 
 struct __memsafe_pk {
 	inline static void memleakcheck() {}
@@ -83,12 +86,17 @@ struct __memsafe_st {
 	}
 
 	~__memsafe_st() 				{ m_memsafeti=0; }
-	void _memsafetycheck() const 	{ assert((m_memsafeti == (__int64_t)(&typeid(nm)))); }
+	void _memsafetycheck() const 	{ 
+		assert((m_memsafeti == (__int64_t)(&typeid(nm))));
+	}
 
 };
 
-#define SAFEHEAD(nm) __memsafe_st<nm> __safe_st;
-#define SAFE() 		 __safe_st._memsafetycheck();
+#define SAFEHEAD(nm) 	__memsafe_st<nm> __safe_st;
+#define SAFE() 			__safe_st._memsafetycheck();
+#define HALTCOMPILE()	throw std::runtime_error();
+#define THROW(msg)		throw std::runtime_error(#msg);
+#define ASSERT(bl)		assert(bl);
 
 #endif
 

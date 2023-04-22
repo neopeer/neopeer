@@ -59,7 +59,7 @@ typedef void (*cb_cleaner_tp)(void);
 thread_local cb_cleaner_tp 	__thread_cleaners[MAXTHREADCLEANERS];
 thread_local int 			__thread_cleaner_index=0;
 void __thread_function_cleaner_add__( cb_cleaner_tp cb ) {
-	if(__thread_cleaner_index>=MAXTHREADCLEANERS) throw std::runtime_error("Maximum count of thread cleaners reached.");
+	if(__thread_cleaner_index>=MAXTHREADCLEANERS-1) THROW("Maximum count of thread cleaners reached.");
 	__thread_cleaners[__thread_cleaner_index++] = cb;
 }
 
