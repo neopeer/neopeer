@@ -708,9 +708,9 @@ struct biguint_t {
 	//
 
 		//callbacks for the mathbank
-		MATHCALL inline static void _cbinit(mpz_t *v, _UNUSED_ ssize_t size) 	 	{ mpz_init2(v[0],size); 	}
+		MATHCALL inline static void _cbinit(mpz_t *v, ssize_t size) 	 			{ mpz_init2(v[0],size); 	}
 		MATHCALL inline static void _cbdeinit(mpz_t *v, _UNUSED_ ssize_t size) 		{ mpz_clear(v[0]); 		 	}
-		MATHCALL inline static void _cbrealloc(mpz_t *v, _UNUSED_ ssize_t size) 	{ mpz_realloc2(v[0],size); 	}
+		MATHCALL inline static void _cbrealloc(mpz_t *v, _UNUSED_ ssize_t size) 	{ mpz_realloc2(v[0],size); }
 
 	//user routines
 	#define make(e,v) { e=mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::allocnode(); v=e->m_v; }
@@ -971,9 +971,9 @@ struct bigfrac_t {
 	// routines
 	//
 
-		MATHCALL inline static void _cbinit(mpq_t *v, _UNUSED_ ssize_t size) 	 	{ mpq_init(v[0]); _cbrealloc(v,size);;  }
+		MATHCALL inline static void _cbinit(mpq_t *v, ssize_t size) 			 	{ mpq_init(v[0]); _cbrealloc(v,size);;  }
 		MATHCALL inline static void _cbdeinit(mpq_t *v, _UNUSED_ ssize_t size)  	{ mpq_clear(v[0]); }
-		MATHCALL inline static void _cbrealloc(mpq_t *v, _UNUSED_ ssize_t size) 	{ mpz_realloc2(mpq_numref(v[0]),size); mpz_realloc2(mpq_denref(v[0]),size); }
+		MATHCALL inline static void _cbrealloc(mpq_t *v, ssize_t size) 				{ mpz_realloc2(mpq_numref(v[0]),size); mpz_realloc2(mpq_denref(v[0]),size); }
 
 	//user routines
 	#define make(e,v) e=mathbankaccess_t<mpq_t,S,bigfrac_t<S>>::bank_t::allocnode(); v=e->m_v;
@@ -1002,6 +1002,7 @@ struct bigfrac_t {
 		MATHCALL inline void 			_abs()		 								{ SAFE() mpq_abs(b.m_v[0],b.m_v[0]); }
 		MATHCALL inline bigfrac_t<S>& 	_inverse()		 							{ SAFE() mpz_swap( mpq_numref(b.m_v[0]), mpq_denref(b.m_v[0]) ); return(this[0]); }
 
+		//TODO: Improve these with direct calls on the numref/denref
 		MATHCALL inline void _add( const mpz_t *rhs ) 								{ SAFE() bigfrac_t _rhs(rhs); this->_add(_rhs.b.m_v); }
 		MATHCALL inline void _sub( const mpz_t *rhs ) 								{ SAFE() bigfrac_t _rhs(rhs); this->_sub(_rhs.b.m_v); }
 		MATHCALL inline void _mul( const mpz_t *rhs ) 								{ SAFE() bigfrac_t _rhs(rhs); this->_mul(_rhs.b.m_v); }
