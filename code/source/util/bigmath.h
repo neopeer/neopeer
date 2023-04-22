@@ -19,7 +19,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-//Trouble compiling:
+//Troubleshooting:
+//	- Any global/static big number should either be thread_local or only used by a single thread
 //	- Check for use of "const" declaration on modular types (supporting const for all edge cases negatively impacts performance)
 //Performance upgrades:
 //	- Prefer constructor initializer lists for structure members
@@ -28,21 +29,21 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 //	- Prefer const input parameters UNLESS:
 //		- function is returning a type that can be the result of optimized operations on a non-const input value
 //		- it causes inefficient use of the type as part of an operation (e.g. internal scratch memory and modulus finalization automation)
-//	- Prefer const function declarations where possible 
+//	- Prefer const member function declarations where possible 
 //	- Prefer use of the address accessing (&) for input parameters where possible for anything other than integers
 //	- Explicitly define global arithmetic operators with GMP & standard types to curate optimal performance (optimal copies etc...)
 //	- Avoid defining global arithmetic operators that take "const" for all custom types as this may encourage inefficient use of memory
-//	- Take advantages of the pre-allocated temporary memory & swap() internal operations provided if it will be faster for a GMP operation
-//	- Use single linked lists where possible if such a construct is needed
+//	- Take advantage of the pre-allocated temporary memory & swap() internal operations provided if it will be faster for a GMP operation
+//	- Use single linked lists where possible if lists are needed
 //Style: 
 //	- Do not override const warnings with a cast to eliminate const-ness, find a way to optimize your code instead without violating const contract
 //	- User-accessible non-operator functions that return internal data types with accessible members/functions are returned by reference / all others by pointer
 //  - Global operators give return type precedence to lefthand type unless operation includes a fraction or a standard data type:
-//			 uint_t * mod_t  = uint_t
 //			 uint_t * frac_t = frac_t
 //			 int    * frac_t = frac_t
 //			 double * frac_t = frac_t
 //			 frac_t * uint_t = frac_t
+//			 mod_t * frac_t  = frac_t
 //			 mod_t * uint_t  = mod_t
 //			 uint_t * mod_t  = uint_t
 
