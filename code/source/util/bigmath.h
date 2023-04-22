@@ -77,7 +77,8 @@ extern "C" {
 #define BIGMATHMEMSCALE 3
 #endif
 
-#ifndef BIGMATHCACHESIZE //optimization for L1 CPU caches without compromising on bank sizes, measured in bits - beware this is PER instantiated type
+#ifndef BIGMATHCACHESIZE //optimization for L1 CPU caches without compromising on bank sizes, measured in bits 
+						 //- beware this is PER instantiated type, actual cache size is rounded up with hard floor
 #define BIGMATHCACHESIZE (32*1024*8)
 #endif
 
@@ -97,13 +98,19 @@ extern "C" {
 #define BIGMATHSTRQUEUEMAX 32
 #endif
 
+#ifndef BIGMATHALIGNMALLOC //allow override of malloc alignment (processor-specific), must be power of two
+#define BIGMATHALIGNMALLOC 8
+#endif
+
+#ifndef BIGMATHMINMALLOC //this must be tied to the minimum size of a GMP limb, which we can't compute as a compile-time constant
+#define BIGMATHMINMALLOC 16
+#endif
+
 #ifndef BIGMATHNOMEMWARN //disable memory hit warnings
 #ifdef NDEBUG
 #define BIGMATHNOMEMWARN
 #endif
 #endif
-
-static_assert(BIGMATHMODSCALE<=BIGMATHMEMSCALE,"BIGMATHMODSCALE must be <= BIGMATHMEMSCALE");
 
 //
 // helper constant generators to minimize template code and optimize resulting assembly
@@ -111,31 +118,45 @@ static_assert(BIGMATHMODSCALE<=BIGMATHMEMSCALE,"BIGMATHMODSCALE must be <= BIGMA
 
 //requires >= c++20 to evaluate constants
 static_assert(__cplusplus > 201703L,"c++ version must be >= 2020");
-
 typedef typename std::make_signed<size_t>::type ssize_t;
 
 namespace _bigmath_compile {
 
-	consteval bool 		isneg( ssize_t a ) 		 	{ return(a<0?true:false); 				}
-	consteval size_t 	constabs( ssize_t a ) 		{ return(a<0?-a:a); 					}
-	consteval size_t 	modcastszup( ssize_t a ) 	{ return constabs(a)*BIGMATHMODSCALE; 	}
-	consteval size_t 	modcastszdown( ssize_t a )	{ return constabs(a)/BIGMATHMODSCALE; 	}
-	consteval size_t	modpow2calc( ssize_t a ) 	{ return isneg(a)?-a:0; 				}
-	consteval size_t	minalloc( size_t a )		{ return(a>16?a:16);					}
+	consteval bool 		isneg( ssize_t a ) 		 	{ return(a<0?true:false); 							}
+	consteval size_t 	constabs( ssize_t a ) 		{ return(a<0?-a:a); 								}
+	consteval size_t	minalloc( size_t a )		{ return(a>BIGMATHMINMALLOC?a:BIGMATHMINMALLOC);	}
 
-		consteval size_t _log2( size_t val, size_t c ) {
-			int r = val>>c;
-			if(r==0) return c;
-			return _log2(val,c+1);
-		}
+	consteval ssize_t 	log2( size_t val, ssize_t c=0 ) { //log2 rounded down
+		size_t r = val>>c;
+		if(r==0) return (c-1);
+		return log2(val,c+1);
+	}
 
-	consteval size_t compute_cache_pow2_size( const size_t cachebits, const size_t numbits ) {
-		size_t log2  = _log2(cachebits/numbits,0)-1;
-		size_t log2f = log2>1?log2:1;
+	consteval size_t 	compute_cache_pow2_size( const size_t cachebits, const size_t numbits ) {
+		 size_t val   = cachebits/numbits;
+		ssize_t log2r = log2(val)+1;		//round up
+		 size_t log2f = log2r>1?log2r:1;	//ensure there are always at least 2 cache entries
 		return(1<<log2f);
 	}
 
+	consteval size_t 	modgencastszup( ssize_t a ) 	{ return constabs(a)*BIGMATHMODSCALE; 					}
+	consteval size_t 	modgencastszdown( ssize_t a )	{ return constabs(a)/BIGMATHMODSCALE; 					}
+	consteval size_t	modgenpow2calc( ssize_t a ) 	{ return isneg(a)?-a:0; 								}
+
+	#define algn (BIGMATHALIGNMALLOC)
+	#define mask (BIGMATHALIGNMALLOC-1)
+	consteval size_t 	alloc_align( size_t sz ) 		{ return (sz+((algn-(sz&mask))&mask)); }	//rounds up to nearest (algn)
+	#undef algn
+	#undef mask
+
 }
+
+//
+// error check the configurations
+//
+
+static_assert(BIGMATHMODSCALE<=BIGMATHMEMSCALE,"BIGMATHMODSCALE must be <= BIGMATHMEMSCALE");
+static_assert((1<<_bigmath_compile::log2(BIGMATHALIGNMALLOC))==BIGMATHALIGNMALLOC,"BIGMATHALIGNMALLOC is not a power of two");
 
 //
 // paging namespace to deal with callbacks from GMP memory requests
@@ -162,7 +183,7 @@ struct mathpaging_t {
 	constexpr static size_t HDR_SZ  	= sizeof(pageheader_t);
 
 	//variables
-	static bool g_setallocators;
+	static bool g_setallocators;	//not thread local as is needed to prevent threads from duplicating GMP init
 	#ifndef BIGMATHNOMEMWARN
 	static thread_local __int64_t g_alloc_cnt, g_realloc_cnt, g_free_cnt;
 	#endif
@@ -319,13 +340,18 @@ struct mathpagingstr_t : mathpaging_t {
 	MATHCALL inline void reset() { m_index=0; }
 
 	MATHCALL void *_alloc( size_t alloc_size ) override final {
+		#define algn (BIGMATHALIGNMALLOC)
+		#define mask (BIGMATHALIGNMALLOC-1)
 		void *handle;
 		size_t sz = alloc_size + HDR_SZ;
-		sz += 8-(sz&7);	//align to multiple of 8
+		size_t boost = (algn-(sz&mask))&mask;		//align to proper multiple
+		sz+=boost; alloc_size+=boost;
 		if((m_index+sz)>MEMSZ) return mathpaging_t::_alloc(alloc_size);
 		handle = __prepare_block( &m_pagemem[m_index], FLG_USED, alloc_size );
 		m_index += sz;
 		return(handle);
+		#undef algn
+		#undef mask
 	}
 
 };
@@ -385,11 +411,11 @@ struct mathbankaccess_t {
 
 		SAFEHEAD(bankpaging_t)
 		
-		constexpr static size_t LOCALMEMSCALE		= CBT::LOCALMEMSCALE();									//calls a consteval in derived classes to scale up paging
+		constexpr static size_t LOCALMEMSCALE		= CBT::LOCALMEMSCALE();	//calls a consteval in derived classes to scale up paging
 		constexpr static size_t BANKSIZE  			= BIGMATHBANKSIZE;
 		constexpr static size_t BANKSIZESCALE	  	= BIGMATHBANKSIZE*LOCALMEMSCALE;
-		constexpr static size_t MAXALLOC			= _bigmath_compile::minalloc((S*BIGMATHMEMSCALE)>>3);	//convert to bytes
-		constexpr static size_t PAGEVALUESZ 		= MAXALLOC+sizeof(pageheader_t);
+		constexpr static size_t MAXALLOC			= _bigmath_compile::alloc_align( _bigmath_compile::minalloc((S*BIGMATHMEMSCALE)>>3) );	//convert bits to bytes for max alloc of entry
+		constexpr static size_t PAGEVALUESZ 		= _bigmath_compile::alloc_align( MAXALLOC+sizeof(pageheader_t) );
 
 		char m_pagemem[ BANKSIZESCALE*PAGEVALUESZ ];	//page memory for GMP internal numbers
 
@@ -429,8 +455,6 @@ struct mathbankaccess_t {
 
 		constexpr static ssize_t CACHESIZE = _bigmath_compile::compute_cache_pow2_size(BIGMATHCACHESIZE,S);
 		constexpr static ssize_t CACHEMASK = CACHESIZE-1;
-
-		static_assert(CACHEMASK>0,"Error: CACHESIZE is too small");
 
 		static thread_local	bankentry_t						*g_cache[CACHESIZE];
 		static thread_local	size_t 							g_cachestore, g_cachefetch;
@@ -534,7 +558,7 @@ struct mathbankaccess_t {
 		MATHCALL inline static bankentry_t *allocnode() { return(_cachefetch()); }
 
 			//longer-term recycling for performance
-			void _freetobank( bankentry_t *e ) {				
+			MATHCALL void _freetobank( bankentry_t *e ) {				
 				SAFE()
 				m_freenodebase.add(&e->m_item);							//add node to bank's freenodebase
 				if(isbankfree()==false) g_freebase.add(&m_freeitem);	//add bank to thread's list of banks with free elements
@@ -543,7 +567,7 @@ struct mathbankaccess_t {
 			}
 
 			//optimized thread-local L1 recycling for performance
-			inline static void _cachestore( bankentry_t *e ) {
+			MATHCALL inline static void _cachestore( bankentry_t *e ) {
 				if(g_cache[g_cachestore]) { 
 					g_cache[g_cachestore]->m_bank->_freetobank( g_cache[g_cachestore] ); 
 					g_cachefetch=(g_cachestore+1)&CACHEMASK; 	//move fetch up so it's using the oldest object in cache
@@ -700,8 +724,8 @@ struct biguint_t {
 
 	#define _S1 S
 	#define _S2 -S
-	#define _S3 _bigmath_compile::modcastszdown(S)
-	#define _S4 -_bigmath_compile::modcastszdown(S)
+	#define _S3 _bigmath_compile::modgencastszdown(S)
+	#define _S4 -_bigmath_compile::modgencastszdown(S)
 
 	MATHCALL inline biguint_t()  													{ _init(); }						//cppcheck-suppress noExplicitConstructor
 	MATHCALL inline biguint_t( int val )  											{ _init(); this->operator=(val); }	//cppcheck-suppress noExplicitConstructor
@@ -756,7 +780,7 @@ struct biguint_t {
 		MATHCALL inline void _add( const int rhs ) 									{ SAFE() mpz_add_ui( b.m_v[0], b.m_v[0], (unsigned long int)rhs ); }
 		MATHCALL inline void _sub( const int rhs ) 									{ SAFE() mpz_sub_ui( b.m_v[0], b.m_v[0], (unsigned long int)rhs ); }
 		MATHCALL inline void _mul( const int rhs ) 									{ SAFE() mpz_mul_ui( b.m_vtmp[0], b.m_v[0], (unsigned long int)rhs ); b.swap(); }
-		MATHCALL inline void _div( const int rhs ) 									{ SAFE() mpz_fdiv_q_ui( b.m_vtmp[0], b.m_v[0], (unsigned long int)rhs ); b.swap(); } //fdiv as should never be used for signed cases
+		MATHCALL inline void _div( const int rhs ) 									{ SAFE() mpz_tdiv_q_ui( b.m_vtmp[0], b.m_v[0], (unsigned long int)rhs ); b.swap(); } //tdiv to handle signed overload
 		MATHCALL inline void _mod( const int rhs ) 									{ SAFE() mpz_mod_ui( b.m_vtmp[0], b.m_v[0], (unsigned long int)rhs ); b.swap(); }
 		MATHCALL inline void _lsh( const int rhs ) 									{ SAFE() mpz_mul_2exp( b.m_vtmp[0], b.m_v[0], rhs ); b.swap(); }
 		MATHCALL inline void _rsh( const int rhs ) 									{ SAFE() mpz_fdiv_q_2exp( b.m_vtmp[0], b.m_v[0], rhs ); b.swap();  }
@@ -888,8 +912,8 @@ struct bigint_t : biguint_t<S> {
 		MATHCALL inline void _add( const int rhs ) 								{ SAFE() if(rhs<0) mpz_sub_ui( this->b.m_v[0], this->b.m_v[0], -rhs ); else mpz_add_ui( this->b.m_v[0], this->b.m_v[0], rhs ); }
 		MATHCALL inline void _sub( const int rhs ) 								{ SAFE() if(rhs<0) mpz_add_ui( this->b.m_v[0], this->b.m_v[0], -rhs ); else mpz_sub_ui( this->b.m_v[0], this->b.m_v[0], rhs ); }
 		MATHCALL inline void _mul( const int rhs ) 								{ SAFE() mpz_mul_si( this->b.m_vtmp[0], this->b.m_v[0], rhs ); this->b.swap(); }
-		MATHCALL inline void _div( const int rhs ) 								{ SAFE() _upcast()->_div(_abs(rhs)); rhs<0?this->_neg():_nop(); }
-		MATHCALL inline void _mod( const int rhs ) 								{ SAFE() _upcast()->_mod(_abs(rhs)); rhs<0?this[0]+=rhs:_nop(); }
+		MATHCALL inline void _div( const int rhs ) 								{ SAFE() mpz_tdiv_q_ui( this->b.m_vtmp[0], this->b.m_v[0], _abs(rhs) ); this->b.swap(); rhs<0?this->_neg():_nop(); } //tdiv to handle signed
+		MATHCALL inline void _mod( const int rhs ) 								{ SAFE() mpz_mod_ui( this->b.m_vtmp[0], this->b.m_v[0], _abs(rhs) ); this->b.swap(); rhs<0?this[0]+=rhs:_nop(); }
 
 	MATHCALL inline void operator+=( const mpz_t *rhs )  						{ _upcast()->_add(rhs); }
 	MATHCALL inline void operator-=( const mpz_t *rhs )  						{ _upcast()->_sub(rhs); }
@@ -1071,14 +1095,14 @@ typedef bigfrac_t<16384> bigfrac16384_t;
 //
 
 //helper to shorten code
-#define _S _bigmath_compile::modcastszup(S)
+#define _S _bigmath_compile::modgencastszup(S)
 
 //big modular number
 template <ssize_t S>
 struct bigmod_t : biguint_t<_S> {
 
 	//constant calculation and typedefs
-	constexpr static size_t pow2bits = _bigmath_compile::modpow2calc(S);
+	constexpr static size_t pow2bits = _bigmath_compile::modgenpow2calc(S);
 	typedef typename mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bankentry_t bankentry_t;
 
 	//constants
@@ -1179,8 +1203,8 @@ struct bigmod_t : biguint_t<_S> {
 	MATHCALL inline ~bigmod_t() 															{ SAFE() _derefmod(m_modptr); }
 	//the above is deliberately *not* virtual for performance
 
-	MATHCALL inline 			int 				operator=( int rhs )					{ SAFE() _dirty(); 				 				    				    _upcast()->operator=(rhs); return(rhs);   		}
-	MATHCALL inline   	  mpz_t* 					operator=( const mpz_t *rhs )			{ SAFE() _dirty(); 				 				    				    _upcast()->operator=(rhs); return(this->b.m_v); }
+	MATHCALL inline 		int 					operator=( int rhs )					{ SAFE() _dirty(); 				 				    				    _upcast()->operator=(rhs); return(rhs);   		}
+	MATHCALL inline   	  	mpz_t* 					operator=( const mpz_t *rhs )			{ SAFE() _dirty(); 				 				    				    _upcast()->operator=(rhs); return(this->b.m_v); }
 	MATHCALL inline        bigmod_t<S>& 			operator=( const bigmod_t<S> &rhs )		{ SAFE() _changemod(&m_modptr,rhs.m_modptr); m_modflags=rhs.m_modflags; _upcast()->operator=(rhs); return(*this); 		} //overload to avoid structure copy errors
 
 	MATHCALL inline void neg()  															{ SAFE() _upcast()->_neg(); _dirty(); }													//dirty
