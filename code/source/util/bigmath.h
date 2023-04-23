@@ -176,7 +176,7 @@ namespace _bigmath_gmp_hacks {
 	MATHCALL inline void mpz_realloc ( mpz_ptr ptr, _UNUSED_ const mp_bitcnt_t bits, _UNUSED_ const int limbs ) { ptr->_mp_size = 0; } //ptr->_mp_alloc = limbs;
 	MATHCALL inline void mpz_limbs_limit ( mpz_ptr ptr, const int maxlimbs, const mpz_ptr modulus ) { 
 		if(ptr->_mp_size<0) {
-			ptr->_mp_size = -ptr->_mp_size > -maxlimbs ? -ptr->_mp_size : -maxlimbs;
+			ptr->_mp_size = ptr->_mp_size > -maxlimbs ? ptr->_mp_size : -maxlimbs;
 			mpz_add( ptr, ptr, modulus );
 		}
 		else ptr->_mp_size = ptr->_mp_size < maxlimbs ? ptr->_mp_size : maxlimbs;
