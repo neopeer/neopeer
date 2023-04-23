@@ -9,11 +9,11 @@ This repository is still in development.
 Use at your own risk.
 
 **Requirements**:  
->= c++20  
+>&gt;= c++20  
 Tested on >= GCC 10.0  
 
 **Installation on Debian/Devuan**:  
-apt-get update && apt-get install aptitude  
+>apt-get update && apt-get install aptitude  
 aptitude install make gcc g++ gdb libgmp-dev codelite cppcheck  
 ;git clone the repo
 
