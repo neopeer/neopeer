@@ -72,10 +72,10 @@ extern "C" {
 //
 
 //to disable custom memory handling
-//#define BIGMATHRAWALLOC  
+//define BIGMATHRAWALLOC  
 
 //to disable gmp hacks
-//#define BIGMATHGMPHACKSDISABLE
+//define BIGMATHGMPHACKSDISABLE
 
 #ifndef BIGMATHMEMSCALE	//internal memory scaling of number over its base size before causing a memory hit
 #define BIGMATHMEMSCALE 3
@@ -169,11 +169,19 @@ static_assert((1<<_bigmath_compile::log2(BIGMATHALIGNMALLOC))==BIGMATHALIGNMALLO
 //
 
 namespace _bigmath_gmp_hacks {
-	#ifdef BIGMATHGMPHACKSDISABLE
-	MATHCALL inline void mpz_realloc ( mpz_ptr ptr, const mp_bitcnt_t bits, _UNUSED_ const int limbs ) { ::mpz_realloc2(ptr,bits); }
-	#else
+#ifdef BIGMATHGMPHACKSDISABLE
+	MATHCALL inline void mpz_realloc ( mpz_ptr ptr, const mp_bitcnt_t bits, _UNUSED_ const int limbs ) 							{ ::mpz_realloc2(ptr,bits); }
+	MATHCALL inline void mpz_limbs_limit ( _UNUSED_ mpz_ptr ptr, _UNUSED_ const int maxlimbs, _UNUSED_ const mpz_ptr modulus ) 	{}
+#else
 	MATHCALL inline void mpz_realloc ( mpz_ptr ptr, _UNUSED_ const mp_bitcnt_t bits, _UNUSED_ const int limbs ) { ptr->_mp_size = 0; } //ptr->_mp_alloc = limbs;
-	#endif
+	MATHCALL inline void mpz_limbs_limit ( mpz_ptr ptr, const int maxlimbs, const mpz_ptr modulus ) { 
+		if(ptr->_mp_size<0) {
+			ptr->_mp_size = -ptr->_mp_size > -maxlimbs ? -ptr->_mp_size : -maxlimbs;
+			mpz_add( ptr, ptr, modulus );
+		}
+		else ptr->_mp_size = ptr->_mp_size < maxlimbs ? ptr->_mp_size : maxlimbs;
+	}
+#endif
 }
 
 //
@@ -607,6 +615,7 @@ struct mathbankaccess_t {
 		MATHCALL static void setallocators() {
 			if(mathpaging_t::g_setallocators) return;
 			mathpaging_t::g_setallocators = true;
+			ASSERT(mp_bits_per_limb==GMP_NUMB_BITS); //ensure expected (C_ALLOC_LIMBS,C_ALLOC_BITS)
 			#ifndef BIGMATHRAWALLOC
 			mp_set_memory_functions( 
 				mathpaging_t::allocate_function,
@@ -1134,7 +1143,14 @@ template <ssize_t S>
 struct bigmod_t : biguint_t<_S> {
 
 	//constant calculation and typedefs
-	constexpr static size_t pow2bits = _bigmath_compile::modgenpow2calc(S);
+	constexpr static size_t POW2BITS = _bigmath_compile::modgenpow2calc(S);
+#ifdef BIGMATHGMPHACKSDISABLE
+	constexpr static bool 	POW2FAST = false;
+	constexpr static int 	POW2LIMBSLIMIT = 0;
+#else
+	constexpr static bool 	POW2FAST = (POW2BITS>0) && ((POW2BITS%GMP_NUMB_BITS)==0);
+	constexpr static int 	POW2LIMBSLIMIT = POW2BITS/GMP_NUMB_BITS;
+#endif
 	typedef typename mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bankentry_t bankentry_t;
 
 	//constants
@@ -1152,28 +1168,33 @@ struct bigmod_t : biguint_t<_S> {
 	// routines
 	//
 
-		MATHCALL inline const biguint_t<_S>* _upcast_const() const 	{ return static_cast<const biguint_t<_S>*>(this); }
-		MATHCALL inline 		 biguint_t<_S>* _upcast() 			{ return static_cast<biguint_t<_S>*>(this); }
+		MATHCALL inline const 	biguint_t<_S>* _upcast_const() const 	{ return static_cast<const biguint_t<_S>*>(this); }
+		MATHCALL inline 		biguint_t<_S>* _upcast() 				{ return static_cast<biguint_t<_S>*>(this); }
 
 		// >>> smart pointer management for modulus
 
 			MATHCALL inline void _makenode( bankentry_t **ee ) const { ee[0]=mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bank_t::allocnode(); }
 
 			MATHCALL inline void _killnode( bankentry_t *ee )  const {
-				if(ee==g_defmodptr) g_defmodptr=0;
-				if(pow2bits>0) 		ee->m_maske->m_bank->freenode(ee->m_maske);
+				if(ee==g_defmodptr) 				g_defmodptr=0;
+				if(POW2BITS>0 && POW2FAST==false) 	ee->m_maske->m_bank->freenode(ee->m_maske);	//cppcheck-suppress knownConditionTrueFalse
 				mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bank_t::freenode(ee);
 			}
 
 			MATHCALL inline bankentry_t* _initpow2mod( bankentry_t *r ) {
 				mpz_t &v=r->m_v[0], &vtmp=this->b.m_vtmp[0];
 				mpz_set_ui( v, 1 );
-				mpz_mul_2exp( vtmp, v, pow2bits );
+				mpz_mul_2exp( vtmp, v, POW2BITS );
 				this->b.swaptmp( &r );
-				_makenode( &r->m_maske );
-				mpz_sub_ui( r->m_maske->m_v[0], vtmp, 1 );
+				if(POW2FAST==false) {	//cppcheck-suppress knownConditionTrueFalse
+					_makenode( &r->m_maske );
+					mpz_sub_ui( r->m_maske->m_v[0], vtmp, 1 );
+					#ifndef BIGMATHNOMEMWARN
+					printf("[WARN] Bigmath pow2 modulus is not a multiple of %i bits\n",GMP_NUMB_BITS);
+					#endif	
+				}
 				return r;
-			} //r=(2^pow2bits)-1
+			} //r=(2^POW2BITS)-1
 
 			MATHCALL inline bankentry_t* _refmod( bankentry_t *ptr ) 					const 	{ ptr->m_refcnt++; return(ptr); }
 			MATHCALL inline void 		 _derefmod( bankentry_t *ptr ) 					const	{ if(--ptr->m_refcnt<=0) _killnode(ptr); }
@@ -1181,7 +1202,7 @@ struct bigmod_t : biguint_t<_S> {
 
 			MATHCALL inline bankentry_t* _genmod( const mpz_t *d ) {
 				bankentry_t *r; _makenode(&r);
-				if(pow2bits>0) 	r = _initpow2mod(r);
+				if(POW2BITS>0) 	r = _initpow2mod(r);
 				else 			mpz_set( r->m_v[0], d );
 				r->m_refcnt=1;
 				return(r);
@@ -1189,7 +1210,7 @@ struct bigmod_t : biguint_t<_S> {
 
 			MATHCALL inline bankentry_t* _genmod( int d ) {
 				bankentry_t *r; _makenode(&r);
-				if(pow2bits>0) 	r = _initpow2mod(r);
+				if(POW2BITS>0) 	r = _initpow2mod(r);
 				else 			mpz_set_si( r->m_v[0], d );
 				r->m_refcnt=1;
 				return(r);
@@ -1203,22 +1224,37 @@ struct bigmod_t : biguint_t<_S> {
 		// >>> maintain number in modulus
 
 			MATHCALL inline void _copycleanraw( mpz_t *rhs ) const {
-				if((m_modflags&FLG_CLEAN)==0) {
-					if(pow2bits>0)	mpz_and( rhs[0], this->b.m_v[0], m_modptr->m_maske->m_v[0] );
-					else			mpz_mod( rhs[0], this->b.m_v[0], m_modptr->m_v[0] );
-					return;
+				if(POW2FAST==false) { //cppcheck-suppress knownConditionTrueFalse
+					if((m_modflags&FLG_CLEAN)==0) {
+						if(POW2BITS>0)	mpz_and( rhs[0], this->b.m_v[0], m_modptr->m_maske->m_v[0] );
+						else			mpz_mod( rhs[0], this->b.m_v[0], m_modptr->m_v[0] );
+						return;
+					}
 				}
 				mpz_set( rhs[0], this->b.m_v[0] );
+				if(POW2FAST) {
+					if((m_modflags&FLG_CLEAN)==0) {
+						_bigmath_gmp_hacks::mpz_limbs_limit( rhs[0], POW2LIMBSLIMIT, m_modptr->m_v[0] );
+					}
+				}
 			}
 
 			MATHCALL inline void _doclean() {
-				if(pow2bits>0) 	_upcast()[0]&=m_modptr->m_maske->m_v;	//and mask for pow2 fields
-				else 			_upcast()[0]%=m_modptr->m_v;			//actual modulus
+				if(POW2FAST) {
+					_bigmath_gmp_hacks::mpz_limbs_limit( this->b.m_v[0], POW2LIMBSLIMIT, m_modptr->m_v[0] );
+				}
+				else {
+					if(POW2BITS>0) 	_upcast()[0]&=m_modptr->m_maske->m_v;	//and mask for pow2 fields
+					else 			_upcast()[0]%=m_modptr->m_v;			//actual modulus
+				}
 				_markclean();
 			}
 
-			MATHCALL inline void _clean() 		{ if((m_modflags&FLG_CLEAN)==0) _doclean(); }
-			MATHCALL inline void _markclean() 	{ m_modflags|=FLG_CLEAN; }
+			MATHCALL inline void _clean() {
+				if ((m_modflags&FLG_CLEAN)==0) _doclean();
+			}
+
+			MATHCALL inline void _markclean() 	{ m_modflags|=FLG_CLEAN;    }
 			MATHCALL inline void _dirty() 		{ m_modflags&=(~FLG_CLEAN); }
 
 	MATHCALL inline bigmod_t( 									   			 ) 	: biguint_t<_S>(),	     						m_modptr(_getdefmod()),  		  m_modflags(0)	  	 	 	 {}	//cppcheck-suppress noExplicitConstructor
