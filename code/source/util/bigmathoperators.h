@@ -550,57 +550,57 @@ MATHCALL inline bigmod_t<S> operator-( bigmod_t<S> lhs ) 										{ lhs.neg(); 
 //cross-type overloads
 
 template <ssize_t S>
-MATHCALL inline bool operator!=( bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return !lhs._eq(rhs);  }
+MATHCALL inline bool operator!=( const bigmod_t<S> &lhs, const mpq_t *rhs ) 					{ lhs._clean(); return !lhs._eq(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator==( bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._eq(rhs);  }
+MATHCALL inline bool operator==( const bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._eq(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator>( bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._gt(rhs);  }
+MATHCALL inline bool operator>( const bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._gt(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator>=( bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._gte(rhs);  }
+MATHCALL inline bool operator>=( const bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._gte(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator<( bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._lt(rhs);  }
+MATHCALL inline bool operator<( const bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._lt(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator<=( bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._lte(rhs);  }
+MATHCALL inline bool operator<=( const bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._lte(rhs);  }
 
 //warning: is not left-hand of mpz_t as this is already caught by uint overloads and conflicts
 
 template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator+( bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs+=lhs; return(rhs); }
+MATHCALL inline bigfrac_t<S> operator+( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs+=lhs; return(rhs); }
 
 template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator-( bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs._neg(); rhs+=lhs; return(rhs); }
+MATHCALL inline bigfrac_t<S> operator-( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs._neg(); rhs+=lhs; return(rhs); }
 
 template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator*( bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs*=lhs; return(rhs); }
+MATHCALL inline bigfrac_t<S> operator*( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs*=lhs; return(rhs); }
 
 template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator/( bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs._inverse()*=lhs; return(rhs); }
+MATHCALL inline bigfrac_t<S> operator/( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs._inverse()*=lhs; return(rhs); }
 
 
 //standard operators
 
 template <ssize_t S>
-MATHCALL inline bool operator!=( bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return !lhs._eq(rhs); }
+MATHCALL inline bool operator!=( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return !lhs._eq(rhs); }
 
 template <ssize_t S>
-MATHCALL inline bool operator==( bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._eq(rhs);  }
+MATHCALL inline bool operator==( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._eq(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator>( bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._gt(rhs);  }
+MATHCALL inline bool operator>( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._gt(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator>=( bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._gte(rhs);  }
+MATHCALL inline bool operator>=( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._gte(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator<( bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._lt(rhs);  }
+MATHCALL inline bool operator<( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._lt(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator<=( bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._lte(rhs);  }
+MATHCALL inline bool operator<=( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._lte(rhs);  }
 
 template <ssize_t S>
 MATHCALL inline bigmod_t<S> operator+( bigmod_t<S> lhs, const mpz_t *rhs ) 						{ lhs+=rhs; return(lhs); }
@@ -630,22 +630,22 @@ MATHCALL inline bigmod_t<S> operator^( bigmod_t<S> lhs, const mpz_t *rhs ) 					
 //int rhs overloads
 
 template <ssize_t S>
-MATHCALL inline bool operator!=( bigmod_t<S> &lhs, const int rhs ) 								{ lhs._clean(); return !lhs._eq(rhs);  }
+MATHCALL inline bool operator!=( const bigmod_t<S> &lhs, const int rhs ) 						{ lhs._clean(); return !lhs._eq(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator==( bigmod_t<S> &lhs, const int rhs ) 								{ lhs._clean(); return lhs._eq(rhs);  }
+MATHCALL inline bool operator==( const bigmod_t<S> &lhs, const int rhs ) 						{ lhs._clean(); return lhs._eq(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator>( bigmod_t<S> &lhs, const int rhs ) 								{ lhs._clean(); return lhs._gt(rhs);  }
+MATHCALL inline bool operator>( const bigmod_t<S> &lhs, const int rhs ) 						{ lhs._clean(); return lhs._gt(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator>=( bigmod_t<S> &lhs, const int rhs ) 								{ lhs._clean(); return lhs._gte(rhs);  }
+MATHCALL inline bool operator>=( const bigmod_t<S> &lhs, const int rhs ) 						{ lhs._clean(); return lhs._gte(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator<( bigmod_t<S> &lhs, const int rhs ) 								{ lhs._clean(); return lhs._lt(rhs);  }
+MATHCALL inline bool operator<( const bigmod_t<S> &lhs, const int rhs ) 						{ lhs._clean(); return lhs._lt(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator<=( bigmod_t<S> &lhs, const int rhs ) 								{ lhs._clean(); return lhs._lte(rhs);  }
+MATHCALL inline bool operator<=( const bigmod_t<S> &lhs, const int rhs ) 						{ lhs._clean(); return lhs._lte(rhs);  }
 
 template <ssize_t S>
 MATHCALL inline bigmod_t<S> operator+( bigmod_t<S> lhs, const int rhs ) 						{ lhs+=rhs; return(lhs); }
@@ -681,22 +681,22 @@ MATHCALL inline bigmod_t<S> operator^( bigmod_t<S> lhs, const int rhs ) 						{ 
 //int lhs overloads
 
 template <ssize_t S>
-MATHCALL inline bool operator!=( const int lhs, bigmod_t<S> &rhs ) 								{ rhs._clean(); return !rhs._eq(lhs); }
+MATHCALL inline bool operator!=( const int lhs, const bigmod_t<S> &rhs ) 						{ rhs._clean(); return !rhs._eq(lhs); }
 
 template <ssize_t S>
-MATHCALL inline bool operator==( const int lhs, bigmod_t<S> &rhs ) 								{ rhs._clean(); return rhs._eq(lhs); }
+MATHCALL inline bool operator==( const int lhs, const bigmod_t<S> &rhs ) 						{ rhs._clean(); return rhs._eq(lhs); }
 
 template <ssize_t S>
-MATHCALL inline bool operator>( const int lhs, bigmod_t<S> &rhs ) 								{ rhs._clean(); return rhs._lt(lhs); }
+MATHCALL inline bool operator>( const int lhs, const bigmod_t<S> &rhs ) 						{ rhs._clean(); return rhs._lt(lhs); }
 
 template <ssize_t S>
-MATHCALL inline bool operator>=( const int lhs, bigmod_t<S> &rhs ) 								{ rhs._clean(); return rhs._lte(lhs);  }
+MATHCALL inline bool operator>=( const int lhs, const bigmod_t<S> &rhs ) 						{ rhs._clean(); return rhs._lte(lhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator<( const int lhs, bigmod_t<S> &rhs ) 								{ rhs._clean(); return rhs._gt(lhs); }
+MATHCALL inline bool operator<( const int lhs, const bigmod_t<S> &rhs ) 						{ rhs._clean(); return rhs._gt(lhs); }
 
 template <ssize_t S>
-MATHCALL inline bool operator<=( const int lhs, bigmod_t<S> &rhs ) 								{ rhs._clean(); return rhs._gte(lhs); }
+MATHCALL inline bool operator<=( const int lhs, const bigmod_t<S> &rhs ) 						{ rhs._clean(); return rhs._gte(lhs); }
 
 template <ssize_t S>
 MATHCALL inline bigmod_t<S> operator+( const int lhs, bigmod_t<S> rhs ) 						{ rhs+=lhs; return(rhs); }
@@ -721,106 +721,6 @@ MATHCALL inline bigmod_t<S> operator|( const int lhs, bigmod_t<S> rhs ) 						{ 
 
 template <ssize_t S>
 MATHCALL inline bigmod_t<S> operator^( const int lhs, bigmod_t<S> rhs ) 						{ rhs^=lhs; return(rhs); }
-
-
-//
-// const overloads to catch unexpected behaviour (e.g. base type operator allows constant math but derived does not)
-//		this is for any modular function that must expressly call "clean"
-//
-// this is here to discourage "const" declarations for types that operate more efficiently without such a declaration
-//
-// below routines are intended to cause compile-time errors to draw the developer's attention
-//
-
-#define _DO_NOT_USE_CONSTANT_MODULARS_ "AVOID USING CONSTANT MODULUS NUMBERS FOR OPERATIONS"
-
-//const mpz_t casting
-
-template <ssize_t S>
-MATHCALL inline void _modularcastsafety_( const bigmod_t<S> &lhs ) 												{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); }
-
-
-//cross-type overloads
-
-template <ssize_t S>
-MATHCALL inline bool operator!=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false); }
-
-template <ssize_t S>
-MATHCALL inline bool operator==( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false); }
-
-template <ssize_t S>
-MATHCALL inline bool operator>( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false); }
-
-template <ssize_t S>
-MATHCALL inline bool operator>=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false); }
-
-template <ssize_t S>
-MATHCALL inline bool operator<( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false); }
-
-template <ssize_t S>
-MATHCALL inline bool operator<=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false); }
-
-template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator+( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigfrac_t<S>()); }
-
-template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator-( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE() return(bigfrac_t<S>()); }
-
-template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator*( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigfrac_t<S>()); }
-
-template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator/( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpq_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigfrac_t<S>()); }
-
-
-//standard operators
-
-template <ssize_t S>
-MATHCALL inline bool operator!=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false); }
-
-template <ssize_t S>
-MATHCALL inline bool operator==( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false); }
-
-template <ssize_t S>
-MATHCALL inline bool operator>( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false);  }
-
-template <ssize_t S>
-MATHCALL inline bool operator>=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false); }
-
-template <ssize_t S>
-MATHCALL inline bool operator<( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false); }
-
-template <ssize_t S>
-MATHCALL inline bool operator<=( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs ) 					{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(false); }
-
-template <ssize_t S>
-MATHCALL inline bigmod_t<S> operator+( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs  ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigmod_t<S>()); }
-
-template <ssize_t S>
-MATHCALL inline bigmod_t<S> operator-( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs  ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigmod_t<S>()); }
-
-template <ssize_t S>
-MATHCALL inline bigmod_t<S> operator*( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs  ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigmod_t<S>()); }
-
-template <ssize_t S>
-MATHCALL inline bigmod_t<S> operator/( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigmod_t<S>()); }
-
-template <ssize_t S>
-MATHCALL inline bigmod_t<S> operator<<( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs  ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigmod_t<S>()); }
-
-template <ssize_t S>
-MATHCALL inline bigmod_t<S> operator>>( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs  ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigmod_t<S>()); }
-
-template <ssize_t S>
-MATHCALL inline bigmod_t<S> operator&( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs  ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigmod_t<S>()); }
-
-template <ssize_t S>
-MATHCALL inline bigmod_t<S> operator|( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigmod_t<S>()); }
-
-template <ssize_t S>
-MATHCALL inline bigmod_t<S> operator^( _UNUSED_ const bigmod_t<S> &lhs, _UNUSED_ const mpz_t *rhs ) 			{ printf(_DO_NOT_USE_CONSTANT_MODULARS_); HALTCOMPILE(); return(bigmod_t<S>()); }
-
-#undef _DO_NOT_USE_CONSTANT_MODULARS_
 
 
 #endif
