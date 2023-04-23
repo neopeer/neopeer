@@ -74,13 +74,16 @@ extern "C" {
 //to disable custom memory handling
 //#define BIGMATHRAWALLOC  
 
+//to disable gmp hacks
+//#define BIGMATHGMPHACKSDISABLE
+
 #ifndef BIGMATHMEMSCALE	//internal memory scaling of number over its base size before causing a memory hit
 #define BIGMATHMEMSCALE 3
 #endif
 
-#ifndef BIGMATHCACHESIZE //optimization for L1 CPU caches without compromising on bank sizes, measured in bits 
-						 //- beware this is PER instantiated type, actual cache size is rounded up with hard floor
-#define BIGMATHCACHESIZE (32*1024*8)
+						 //optimization for L1 CPU caches without compromising on bank sizes, measured in bits 						 
+#ifndef BIGMATHCACHESIZE //- beware this is PER instantiated type, actual cache size is rounded up with hard floor
+#define BIGMATHCACHESIZE (16*1024*8)
 #endif
 
 #ifndef BIGMATHMODSCALE	//can be lowered below the max memory scaling if there is a computational advantage to it
@@ -99,18 +102,18 @@ extern "C" {
 #define BIGMATHSTRQUEUEMAX 32
 #endif
 
-#ifndef BIGMATHALIGNMALLOC //allow override of malloc alignment (processor-specific), must be power of two
-#define BIGMATHALIGNMALLOC 8
-#endif
-
-#ifndef BIGMATHMINMALLOC //this must be tied to the minimum size of a GMP limb, which we can't compute as a compile-time constant
-#define BIGMATHMINMALLOC 16
-#endif
-
 #ifndef BIGMATHNOMEMWARN //disable memory hit warnings
 #ifdef NDEBUG
 #define BIGMATHNOMEMWARN
 #endif
+#endif
+
+#ifndef BIGMATHALIGNMALLOC //allow override of malloc alignment (processor-specific), must be power of two
+#define BIGMATHALIGNMALLOC 8
+#endif
+
+#ifndef BIGMATHMINMALLOC //this must be tied to the minimum size of a GMP limb
+#define BIGMATHMINMALLOC (sizeof(__mpz_struct) + _bigmath_compile::bits2bytes(GMP_NUMB_BITS))
 #endif
 
 //
@@ -123,6 +126,7 @@ typedef typename std::make_signed<size_t>::type ssize_t;
 
 namespace _bigmath_compile {
 
+	consteval size_t  	bits2bytes( size_t a )		{ return(a>>3); }
 	consteval bool 		isneg( ssize_t a ) 		 	{ return(a<0?true:false); 							}
 	consteval size_t 	constabs( ssize_t a ) 		{ return(a<0?-a:a); 								}
 	consteval size_t	minalloc( size_t a )		{ return(a>BIGMATHMINMALLOC?a:BIGMATHMINMALLOC);	}
@@ -144,12 +148,13 @@ namespace _bigmath_compile {
 	consteval size_t 	modgencastszdown( ssize_t a )	{ return constabs(a)/BIGMATHMODSCALE; 					}
 	consteval size_t	modgenpow2calc( ssize_t a ) 	{ return isneg(a)?-a:0; 								}
 
-	#define algn (BIGMATHALIGNMALLOC)
-	#define mask (BIGMATHALIGNMALLOC-1)
-	consteval size_t 	alloc_align( size_t sz ) 		{ return (sz+((algn-(sz&mask))&mask)); }	//rounds up to nearest (algn)
-	#undef algn
-	#undef mask
-
+	consteval size_t 	alloc_align( size_t sz ) { 
+		#define algn (BIGMATHALIGNMALLOC)
+		#define mask (BIGMATHALIGNMALLOC-1)
+		return (sz+((algn-(sz&mask))&mask));	//rounds up to nearest power-of-2 (algn)
+		#undef algn
+		#undef mask
+	}
 }
 
 //
@@ -158,6 +163,18 @@ namespace _bigmath_compile {
 
 static_assert(BIGMATHMODSCALE<=BIGMATHMEMSCALE,"BIGMATHMODSCALE must be <= BIGMATHMEMSCALE");
 static_assert((1<<_bigmath_compile::log2(BIGMATHALIGNMALLOC))==BIGMATHALIGNMALLOC,"BIGMATHALIGNMALLOC is not a power of two");
+
+//
+// direct hacks into GMP structures to speed up certain functionality (e.g. reducing a number)
+//
+
+namespace _bigmath_gmp_hacks {
+	#ifdef BIGMATHGMPHACKSDISABLE
+	MATHCALL inline void mpz_realloc ( mpz_ptr ptr, const mp_bitcnt_t bits, _UNUSED_ const int limbs ) { ::mpz_realloc2(ptr,bits); }
+	#else
+	MATHCALL inline void mpz_realloc ( mpz_ptr ptr, _UNUSED_ const mp_bitcnt_t bits, _UNUSED_ const int limbs ) { ptr->_mp_size = 0; } //ptr->_mp_alloc = limbs;
+	#endif
+}
 
 //
 // paging namespace to deal with callbacks from GMP memory requests
@@ -415,7 +432,7 @@ struct mathbankaccess_t {
 		constexpr static size_t LOCALMEMSCALE		= CBT::LOCALMEMSCALE();	//calls a consteval in derived classes to scale up paging
 		constexpr static size_t BANKSIZE  			= BIGMATHBANKSIZE;
 		constexpr static size_t BANKSIZESCALE	  	= BIGMATHBANKSIZE*LOCALMEMSCALE;
-		constexpr static size_t MAXALLOC			= _bigmath_compile::alloc_align( _bigmath_compile::minalloc((S*BIGMATHMEMSCALE)>>3) );	//convert bits to bytes for max alloc of entry
+		constexpr static size_t MAXALLOC			= _bigmath_compile::alloc_align( _bigmath_compile::minalloc( _bigmath_compile::bits2bytes( S*BIGMATHMEMSCALE )));
 		constexpr static size_t PAGEVALUESZ 		= _bigmath_compile::alloc_align( MAXALLOC+sizeof(pageheader_t) );
 
 		char m_pagemem[ BANKSIZESCALE*PAGEVALUESZ ];	//page memory for GMP internal numbers
@@ -451,11 +468,13 @@ struct mathbankaccess_t {
 
 		constexpr static size_t BANKSIZE  = BIGMATHBANKSIZE;
 
+		//constexpr static size_t C_ALLOC_LIMBS = (S/GMP_NUMB_BITS+(S%GMP_NUMB_BITS==0?0:1)+1);
+		//constexpr static size_t C_ALLOC_BITS  = C_ALLOC_LIMBS*GMP_NUMB_BITS;
 		const size_t C_ALLOC_LIMBS = (S/mp_bits_per_limb+(S%mp_bits_per_limb==0?0:1)+1);
 		const size_t C_ALLOC_BITS  = C_ALLOC_LIMBS*mp_bits_per_limb;
 
-		constexpr static ssize_t CACHESIZE = _bigmath_compile::compute_cache_pow2_size(BIGMATHCACHESIZE,S);
-		constexpr static ssize_t CACHEMASK = CACHESIZE-1;
+		constexpr static size_t CACHESIZE = _bigmath_compile::compute_cache_pow2_size(BIGMATHCACHESIZE,S);
+		constexpr static size_t CACHEMASK = CACHESIZE-1;
 
 		static thread_local	bankentry_t						*g_cache[CACHESIZE];
 		static thread_local	size_t 							g_cachestore, g_cachefetch;
@@ -483,7 +502,7 @@ struct mathbankaccess_t {
 
 			mathpaging_t::g_activeindex = index;
 			mathpaging_t::g_activeptr = &m_paging;
-			CBT::_cbinit(&m_v[index],C_ALLOC_BITS);
+			CBT::_cbinit(&m_v[index],C_ALLOC_BITS,C_ALLOC_LIMBS);
 			mathpaging_t::g_activeptr = &mathpaging_t::g_default;
 		}
 
@@ -491,7 +510,7 @@ struct mathbankaccess_t {
 		MATHCALL inline void deinitvalue( size_t index ) {
 			mathpaging_t::g_activeindex = index;
 			mathpaging_t::g_activeptr = &m_paging;
-			CBT::_cbdeinit(&m_v[index],C_ALLOC_BITS);
+			CBT::_cbdeinit(&m_v[index],C_ALLOC_BITS,C_ALLOC_LIMBS);
 			mathpaging_t::g_activeptr = &mathpaging_t::g_default;
 		}
 
@@ -499,7 +518,7 @@ struct mathbankaccess_t {
 		MATHCALL inline void reinitvalue( size_t index ) {
 			mathpaging_t::g_activeindex = index;
 			mathpaging_t::g_activeptr = &m_paging;
-			CBT::_cbrealloc(&m_v[index],C_ALLOC_BITS);
+			CBT::_cbrealloc(&m_v[index],C_ALLOC_BITS,C_ALLOC_LIMBS);
 			mathpaging_t::g_activeptr = &mathpaging_t::g_default;
 		}
 
@@ -708,9 +727,9 @@ struct biguint_t {
 	//
 
 		//callbacks for the mathbank
-		MATHCALL inline static void _cbinit(mpz_t *v, ssize_t size) 	 			{ mpz_init2(v[0],size); 	}
-		MATHCALL inline static void _cbdeinit(mpz_t *v, _UNUSED_ ssize_t size) 		{ mpz_clear(v[0]); 		 	}
-		MATHCALL inline static void _cbrealloc(mpz_t *v, _UNUSED_ ssize_t size) 	{ mpz_realloc2(v[0],size); }
+		MATHCALL inline static void _cbinit(mpz_t *v, const size_t bits, _UNUSED_ const int limbs) 	 			{ mpz_init2(v[0],bits);    }
+		MATHCALL inline static void _cbdeinit(mpz_t *v, _UNUSED_ const size_t bits, _UNUSED_ const int limbs) 	{ mpz_clear(v[0]); 		   }
+		MATHCALL inline static void _cbrealloc(mpz_t *v, const size_t bits, const int limbs) 					{ _bigmath_gmp_hacks::mpz_realloc(v[0],bits,limbs); }
 
 	//user routines
 	#define make(e,v) { e=mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::allocnode(); v=e->m_v; }
@@ -971,9 +990,20 @@ struct bigfrac_t {
 	// routines
 	//
 
-		MATHCALL inline static void _cbinit(mpq_t *v, ssize_t size) 			 	{ mpq_init(v[0]); _cbrealloc(v,size);;  }
-		MATHCALL inline static void _cbdeinit(mpq_t *v, _UNUSED_ ssize_t size)  	{ mpq_clear(v[0]); }
-		MATHCALL inline static void _cbrealloc(mpq_t *v, ssize_t size) 				{ mpz_realloc2(mpq_numref(v[0]),size); mpz_realloc2(mpq_denref(v[0]),size); }
+		MATHCALL inline static void _cbinit(mpq_t *v, const size_t bits, _UNUSED_ const int limbs) { 
+			mpq_init(v[0]); 
+			mpz_realloc2(mpq_numref(v[0]),bits); 
+			mpz_realloc2(mpq_denref(v[0]),bits);
+		}
+
+		MATHCALL inline static void _cbdeinit(mpq_t *v, _UNUSED_ const size_t bits, _UNUSED_ const int limbs) {
+			mpq_clear(v[0]);
+		}
+
+		MATHCALL inline static void _cbrealloc(mpq_t *v, const size_t bits, const int limbs) {
+			_bigmath_gmp_hacks::mpz_realloc(mpq_numref(v[0]),bits,limbs); 
+			_bigmath_gmp_hacks::mpz_realloc(mpq_denref(v[0]),bits,limbs);
+		}
 
 	//user routines
 	#define make(e,v) e=mathbankaccess_t<mpq_t,S,bigfrac_t<S>>::bank_t::allocnode(); v=e->m_v;
@@ -1146,8 +1176,8 @@ struct bigmod_t : biguint_t<_S> {
 			} //r=(2^pow2bits)-1
 
 			MATHCALL inline bankentry_t* _refmod( bankentry_t *ptr ) 					const 	{ ptr->m_refcnt++; return(ptr); }
-			MATHCALL inline void 		_derefmod( bankentry_t *ptr ) 					const	{ if(--ptr->m_refcnt<=0) _killnode(ptr); }
-			MATHCALL inline void 		_changemod( bankentry_t **a, bankentry_t *b )	const	{ b->m_refcnt++; _derefmod(a[0]); a[0]=b; }
+			MATHCALL inline void 		 _derefmod( bankentry_t *ptr ) 					const	{ if(--ptr->m_refcnt<=0) _killnode(ptr); }
+			MATHCALL inline void 		 _changemod( bankentry_t **a, bankentry_t *b )	const	{ b->m_refcnt++; _derefmod(a[0]); a[0]=b; }
 
 			MATHCALL inline bankentry_t* _genmod( const mpz_t *d ) {
 				bankentry_t *r; _makenode(&r);
