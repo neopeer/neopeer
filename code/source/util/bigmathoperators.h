@@ -553,54 +553,54 @@ template <ssize_t S>
 MATHCALL inline bool operator!=( const bigmod_t<S> &lhs, const mpq_t *rhs ) 					{ lhs._clean(); return !lhs._eq(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator==( const bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._eq(rhs);  }
+MATHCALL inline bool operator==( const bigmod_t<S> &lhs, const mpq_t *rhs ) 					{ lhs._clean(); return lhs._eq(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator>( const bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._gt(rhs);  }
+MATHCALL inline bool operator>( const bigmod_t<S> &lhs, const mpq_t *rhs ) 						{ lhs._clean(); return lhs._gt(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator>=( const bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._gte(rhs);  }
+MATHCALL inline bool operator>=( const bigmod_t<S> &lhs, const mpq_t *rhs ) 					{ lhs._clean(); return lhs._gte(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator<( const bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._lt(rhs);  }
+MATHCALL inline bool operator<( const bigmod_t<S> &lhs, const mpq_t *rhs ) 						{ lhs._clean(); return lhs._lt(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator<=( const bigmod_t<S> &lhs, const mpq_t *rhs ) 							{ lhs._clean(); return lhs._lte(rhs);  }
+MATHCALL inline bool operator<=( const bigmod_t<S> &lhs, const mpq_t *rhs ) 					{ lhs._clean(); return lhs._lte(rhs);  }
 
 //warning: is not left-hand of mpz_t as this is already caught by uint overloads and conflicts
 
 template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator+( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs+=lhs; return(rhs); }
+MATHCALL inline bigfrac_t<S> operator+( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 				{ lhs._clean(); rhs+=lhs; return(rhs); }
 
 template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator-( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs._neg(); rhs+=lhs; return(rhs); }
+MATHCALL inline bigfrac_t<S> operator-( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 				{ lhs._clean(); rhs._neg(); rhs+=lhs; return(rhs); }
 
 template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator*( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs*=lhs; return(rhs); }
+MATHCALL inline bigfrac_t<S> operator*( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 				{ lhs._clean(); rhs*=lhs; return(rhs); }
 
 template <ssize_t S>
-MATHCALL inline bigfrac_t<S> operator/( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 					{ lhs._clean(); rhs._inverse()*=lhs; return(rhs); }
+MATHCALL inline bigfrac_t<S> operator/( const bigmod_t<S> &lhs, bigfrac_t<S> rhs ) 				{ lhs._clean(); rhs._inverse()*=lhs; return(rhs); }
 
 
 //standard operators
 
 template <ssize_t S>
-MATHCALL inline bool operator!=( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return !lhs._eq(rhs); }
+MATHCALL inline bool operator!=( const bigmod_t<S> &lhs, const mpz_t *rhs ) 					{ lhs._clean(); return !lhs._eq(rhs); }
 
 template <ssize_t S>
-MATHCALL inline bool operator==( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._eq(rhs);  }
+MATHCALL inline bool operator==( const bigmod_t<S> &lhs, const mpz_t *rhs ) 					{ lhs._clean(); return lhs._eq(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator>( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._gt(rhs);  }
+MATHCALL inline bool operator>( const bigmod_t<S> &lhs, const mpz_t *rhs ) 						{ lhs._clean(); return lhs._gt(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator>=( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._gte(rhs);  }
+MATHCALL inline bool operator>=( const bigmod_t<S> &lhs, const mpz_t *rhs ) 					{ lhs._clean(); return lhs._gte(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator<( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._lt(rhs);  }
+MATHCALL inline bool operator<( const bigmod_t<S> &lhs, const mpz_t *rhs ) 						{ lhs._clean(); return lhs._lt(rhs);  }
 
 template <ssize_t S>
-MATHCALL inline bool operator<=( const bigmod_t<S> &lhs, const mpz_t *rhs ) 							{ lhs._clean(); return lhs._lte(rhs);  }
+MATHCALL inline bool operator<=( const bigmod_t<S> &lhs, const mpz_t *rhs ) 					{ lhs._clean(); return lhs._lte(rhs);  }
 
 template <ssize_t S>
 MATHCALL inline bigmod_t<S> operator+( bigmod_t<S> lhs, const mpz_t *rhs ) 						{ lhs+=rhs; return(lhs); }
