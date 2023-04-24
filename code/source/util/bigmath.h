@@ -142,8 +142,6 @@ namespace _bigmath_compile {
 		return(1<<log2f);
 	}
 
-	consteval size_t 	modgencastszup( ssize_t a ) 	{ return constabs(a)*BIGMATHMODSCALE; 					}
-	consteval size_t 	modgencastszdown( ssize_t a )	{ return constabs(a)/BIGMATHMODSCALE; 					}
 	consteval size_t	modgenpow2calc( ssize_t a ) 	{ return isneg(a)?-a:0; 								}
 
 	consteval size_t 	alloc_align( size_t sz ) { 
@@ -172,7 +170,7 @@ namespace _bigmath_gmp_hacks {
 		::mpz_realloc2(ptr,bits);
 	}
 	MATHCALL inline void mpz_limbs_limit ( _UNUSED_ mpz_ptr ptr, _UNUSED_ const int maxlimbs, _UNUSED_ const mpz_ptr modulus ) 	{}
-	MATHCALL inline void prefetch( void *addr )	{}
+	MATHCALL inline void prefetch( _UNUSED_ void *addr )	{}
 #else
 	MATHCALL inline void mpz_realloc ( mpz_ptr ptr, _UNUSED_ const mp_bitcnt_t bits, _UNUSED_ const int limbs ) { 
 		ptr->_mp_size = 0; 
@@ -664,28 +662,14 @@ struct mathbankaccess_t {
 	// local (per instatiation)
 	//
 
-	bankentry_t *m_e, *m_etmp;	//no need to swap these during runtime
-	mutable T	*m_v, *m_vtmp;
+			bankentry_t *m_e, *m_etmp;	//no need to swap these during runtime
+	mutable T			*m_v, *m_vtmp;
 
 	MATHCALL inline void swap() const {
 		SAFE()
 		T *swapv;
 		swapv = m_v; m_v = m_vtmp; m_vtmp = swapv;
 	}
-
-	MATHCALL inline void swaptmp( bankentry_t **target ) {
-
-		SAFE()
-		bankentry_t *swape;
-
-		if(m_vtmp==m_e->m_v) 	{ swape = m_e;    m_e    = target[0]; }
-		else 					{ swape = m_etmp; m_etmp = target[0]; }
-
-		m_vtmp    = target[0]->m_v;
-		target[0] = swape;
-
-	}
-
 };
 
 template <typename T, ssize_t S, typename CBT>
@@ -760,8 +744,6 @@ struct biguint_t {
 
 	#define _S1 S
 	#define _S2 -S
-	#define _S3 _bigmath_compile::modgencastszdown(S)
-	#define _S4 -_bigmath_compile::modgencastszdown(S)
 
 	MATHCALL inline biguint_t()  													{ _init(); }						//cppcheck-suppress noExplicitConstructor
 	MATHCALL inline biguint_t( int val )  											{ _init(); this->operator=(val); }	//cppcheck-suppress noExplicitConstructor
@@ -769,21 +751,15 @@ struct biguint_t {
 	MATHCALL inline biguint_t( const biguint_t &rhs ) 								{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
 	MATHCALL inline biguint_t( const bigmod_t<_S1> &rhs )							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
 	MATHCALL inline biguint_t( const bigmod_t<_S2> &rhs )							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
-	MATHCALL inline biguint_t( const bigmod_t<_S3> &rhs )							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
-	MATHCALL inline biguint_t( const bigmod_t<_S4> &rhs )							{ _init(); this->operator=(rhs); }	//cppcheck-suppress noExplicitConstructor
 
 	MATHCALL inline 		 int 				operator=( int val ) 				{ SAFE() mpz_set_ui(b.m_v[0],(unsigned long int)val); return(val); }
 	MATHCALL inline 	     mpz_t* 			operator=( const mpz_t *rhs )		{ SAFE() mpz_set(b.m_v[0],rhs[0]);  return(b.m_v); }
 	MATHCALL inline 	 	 biguint_t<S> & 	operator=( const biguint_t<S> &rhs ){ SAFE() mpz_set(b.m_v[0],rhs.b.m_v[0]); return(*this); }				//overload to avoid structure copy errors
 	MATHCALL inline const bigmod_t<_S1> & 	operator=( const bigmod_t<_S1> &rhs ) 	{ SAFE() this[0] = rhs.constbase(); return(rhs); }						//overload to avoid structure copy errors
 	MATHCALL inline const bigmod_t<_S2> & 	operator=( const bigmod_t<_S2> &rhs ) 	{ SAFE() this[0] = rhs.constbase(); return(rhs); }						//overload to avoid structure copy errors
-	MATHCALL inline const bigmod_t<_S3> & 	operator=( const bigmod_t<_S3> &rhs ) 	{ SAFE() this[0] = rhs.constbase(); return(rhs); }						//overload to avoid structure copy errors
-	MATHCALL inline const bigmod_t<_S4> & 	operator=( const bigmod_t<_S4> &rhs ) 	{ SAFE() this[0] = rhs.constbase(); return(rhs); }						//overload to avoid structure copy errors
 
 	#undef _S1 
 	#undef _S2 
-	#undef _S3 
-	#undef _S4 
 
 		MATHCALL inline void _neg()		 											{ SAFE() mpz_neg(b.m_v[0],b.m_v[0]); }
 		MATHCALL inline void _abs()		 											{ SAFE() mpz_abs(b.m_v[0],b.m_v[0]); }
@@ -1150,7 +1126,7 @@ typedef bigfrac_t<16384> bigfrac16384_t;
 //
 
 //helper to shorten code
-#define _S _bigmath_compile::modgencastszup(S)
+#define _S _bigmath_compile::constabs(S)
 
 //big modular number
 template <ssize_t S>
@@ -1188,27 +1164,34 @@ struct bigmod_t : biguint_t<_S> {
 
 		// >>> smart pointer management for modulus
 
-			MATHCALL inline void _makenode( bankentry_t **ee ) const { ee[0]=mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bank_t::allocnode(); }
-
-			MATHCALL inline void _killnode( bankentry_t *ee )  const {
-				if(ee==g_defmodptr) 				g_defmodptr=0;
-				if(POW2BITS>0 && POW2FAST==false) 	ee->m_maske->m_bank->freenode(ee->m_maske);	//cppcheck-suppress knownConditionTrueFalse
-				mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bank_t::freenode(ee);
+			MATHCALL inline void _makenode( bankentry_t **ee ) const { 
+				ee[0]=mathbankaccess_t<mpz_t,_S,biguint_t<_S>>::bank_t::allocnode();
+				#ifndef NDEBUG
+				ee[0]->m_maske = 0;
+				#endif
 			}
 
-			MATHCALL inline bankentry_t* _initpow2mod( bankentry_t *r ) {
+			MATHCALL inline void _killnode( bankentry_t *ee )  const {
+				if(ee==g_defmodptr) 	g_defmodptr=0;
+				if(POW2FAST==false && POW2BITS>0) { //cppcheck-suppress knownConditionTrueFalse
+					ASSERT(ee->m_maske!=0);			//if this assert trips, ensure you are not moving non-pow2 modulis to pow2 modulis
+					ee->m_maske->m_bank->freenode(ee->m_maske);	
+				}
+				else ASSERT(ee->m_maske==0);		//if this assert trips, ensure you are not moving non-pow2 modulis to pow2 modulis
+				ee->m_bank->freenode(ee);
+			}
+
+			MATHCALL inline void _initpow2mod( bankentry_t *r ) {
 				mpz_t &v=r->m_v[0], &vtmp=this->b.m_vtmp[0];
-				mpz_set_ui( v, 1 );
-				mpz_mul_2exp( vtmp, v, POW2BITS );
-				this->b.swaptmp( &r );
+				mpz_set_ui( vtmp, 1 );
+				mpz_mul_2exp( v, vtmp, POW2BITS );
 				if(POW2FAST==false) {	//cppcheck-suppress knownConditionTrueFalse
 					_makenode( &r->m_maske );
-					mpz_sub_ui( r->m_maske->m_v[0], vtmp, 1 );
-					#ifndef BIGMATHNOMEMWARN
+					mpz_sub_ui( r->m_maske->m_v[0], v, 1 );
+					#if defined(BIGMATHNOMEMWARN)==false && defined(BIGMATHGMPHACKSDISABLE)==false
 					printf("[WARN] Bigmath pow2 modulus is not a multiple of %i bits\n",GMP_NUMB_BITS);
 					#endif	
 				}
-				return r;
 			} //r=(2^POW2BITS)-1
 
 			MATHCALL inline bankentry_t* _refmod( bankentry_t *ptr ) 					const 	{ ptr->m_refcnt++; return(ptr); }
@@ -1217,15 +1200,15 @@ struct bigmod_t : biguint_t<_S> {
 
 			MATHCALL inline bankentry_t* _genmod( const mpz_t *d ) {
 				bankentry_t *r; _makenode(&r);
-				if(POW2BITS>0) 	r = _initpow2mod(r);
-				else 			mpz_set( r->m_v[0], d );
+				if(POW2BITS>0) 	_initpow2mod(r);
+				else 			mpz_set( r->m_v[0], d[0] );
 				r->m_refcnt=1;
 				return(r);
 			}
 
 			MATHCALL inline bankentry_t* _genmod( int d ) {
 				bankentry_t *r; _makenode(&r);
-				if(POW2BITS>0) 	r = _initpow2mod(r);
+				if(POW2BITS>0) 	_initpow2mod(r);
 				else 			mpz_set_si( r->m_v[0], d );
 				r->m_refcnt=1;
 				return(r);
@@ -1244,8 +1227,8 @@ struct bigmod_t : biguint_t<_S> {
 					_bigmath_gmp_hacks::mpz_limbs_limit( this->b.m_v[0], POW2LIMBSLIMIT, m_modptr->m_v[0] );
 				}
 				else {
-					if(POW2BITS>0) 	{ mpz_and( this->b.m_v[0], this->b.m_v[0], m_modptr->m_maske->m_v[0] ); } 			//and mask for pow2 fields
-					else 			{ mpz_mod( this->b.m_vtmp[0], this->b.m_v[0], m_modptr->m_v[0] ); this->b.swap(); }	//actual modulus
+					if(POW2BITS>0) 	{ ASSERT(m_modptr->m_maske!=0) 	mpz_and( this->b.m_v[0], this->b.m_v[0], m_modptr->m_maske->m_v[0] ); } 			//and mask for pow2 fields
+					else 			{ 								mpz_mod( this->b.m_vtmp[0], this->b.m_v[0], m_modptr->m_v[0] ); this->b.swap(); }	//actual modulus
 				}
 			}
 
@@ -1259,10 +1242,10 @@ struct bigmod_t : biguint_t<_S> {
 	MATHCALL inline bigmod_t( int rhs, 				 	const mpz_t *d 		 ) 	: biguint_t<_S>( rhs ), 						m_modptr(_genmod(d)), 			  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
 	MATHCALL inline bigmod_t( int rhs, 				 	int d 		   		 ) 	: biguint_t<_S>( rhs ), 						m_modptr(_genmod(d)), 			  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
 	MATHCALL inline bigmod_t( const bigmod_t &rhs				  			 ) 	: biguint_t<_S>( rhs._upcast_const()[0] ),		m_modptr(_refmod(rhs.m_modptr)),  m_modflags(rhs.m_modflags) {} //cppcheck-suppress noExplicitConstructor
-	MATHCALL inline bigmod_t( int rhs,				 	const bankentry_t &d ) 	: biguint_t<_S>( rhs ), 						m_modptr(_refmod(&d)), 	 	  	  m_modflags(0) 			 {} //cppcheck-suppress noExplicitConstructor
-	MATHCALL inline bigmod_t( const mpz_t *rhs, 		const bankentry_t &d ) 	: biguint_t<_S>( rhs ), 						m_modptr(_refmod(&d)),		 	  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
-	MATHCALL inline bigmod_t( const mpz_t *rhs, 		const mpz_t *d 		 ) 	: biguint_t<_S>( rhs ), 						m_modptr(_genmod(d)), 			  m_modflags(0) 			 {} //cppcheck-suppress noExplicitConstructor
-	MATHCALL inline bigmod_t( const bankentry_t &rhs, 	const bankentry_t &d )	: biguint_t<_S>( rhs.m_v ), 					m_modptr(_refmod(&d)),		  	  m_modflags(0) 			 {}	
+	MATHCALL inline bigmod_t( int rhs,				 	bankentry_t &d 	 	 ) 	: biguint_t<_S>( rhs ), 						m_modptr(_refmod(&d)), 	 	  	  m_modflags(0) 			 {} //cppcheck-suppress noExplicitConstructor
+	MATHCALL inline bigmod_t( const mpz_t *rhs, 		bankentry_t &d 	 	 ) 	: biguint_t<_S>( rhs ), 						m_modptr(_refmod(&d)),		 	  m_modflags(0) 			 {}	//cppcheck-suppress noExplicitConstructor
+	MATHCALL inline bigmod_t( const mpz_t *rhs, 		const mpz_t *d 	 	 ) 	: biguint_t<_S>( rhs ), 						m_modptr(_genmod(d)), 			  m_modflags(0) 			 {} //cppcheck-suppress noExplicitConstructor
+	MATHCALL inline bigmod_t( bankentry_t &rhs, 		bankentry_t &d 		 )	: biguint_t<_S>( rhs.m_v ), 					m_modptr(_refmod(&d)),		  	  m_modflags(0) 			 {}	
 
 	MATHCALL inline ~bigmod_t() 															{ SAFE() _derefmod(m_modptr); }
 	//the above is deliberately *not* virtual for performance
@@ -1276,10 +1259,10 @@ struct bigmod_t : biguint_t<_S> {
 	MATHCALL inline void operator+=(  const mpz_t *rhs )  									{ SAFE() _upcast()->_add(rhs); _dirty(); }												//dirty
 	MATHCALL inline void operator-=(  const mpz_t *rhs )  									{ SAFE() _upcast()->_sub(rhs); _dirty(); }												//dirty
 	MATHCALL inline void operator*=(  const mpz_t *rhs )  									{ SAFE() _upcast()->_mul(rhs); _doclean(); } 											//reduce now
-	MATHCALL inline void operator/=(  const mpz_t *rhs ) 	 								{ SAFE() bigmod_t<S> _rhs(rhs); this[0]*=_rhs._inverse(); }								//multiply reduces
+	MATHCALL inline void operator/=(  const mpz_t *rhs ) 	 								{ SAFE() bigmod_t<S> _rhs(rhs,m_modptr[0]); this[0]*=_rhs._inverse(); }					//multiply reduces
 	MATHCALL inline void operator%=(  const mpz_t *rhs )  									{ SAFE() _clean(); _upcast()->_mod(rhs); }												//clean - cannot expand number
-	MATHCALL inline void operator<<=( const mpz_t *rhs )  									{ SAFE() bigmod_t<S> _rhs(2,m_modptr); this[0]*=_rhs._pow(rhs); }						//multiply reduces
-	MATHCALL inline void operator>>=( const mpz_t *rhs )  									{ SAFE() bigmod_t<S> _rhs(2,m_modptr); this[0]*=_rhs._inverse()._pow(rhs); }			//multiply reduces
+	MATHCALL inline void operator<<=( const mpz_t *rhs )  									{ SAFE() bigmod_t<S> _rhs(2,m_modptr[0]); this[0]*=_rhs._pow(rhs); }					//multiply reduces
+	MATHCALL inline void operator>>=( const mpz_t *rhs )  									{ SAFE() bigmod_t<S> _rhs(2,m_modptr[0]); this[0]*=_rhs._inverse()._pow(rhs); }			//multiply reduces
 	MATHCALL inline void operator&=(  const mpz_t *rhs ) 									{ SAFE() _clean(); _upcast()->_and(rhs); }												//clean - cannot expand number
 	MATHCALL inline void operator|=(  const mpz_t *rhs ) 									{ SAFE() _clean(); _upcast()->_or(rhs);  _dirty(); }									//dirty
 	MATHCALL inline void operator^=(  const mpz_t *rhs ) 									{ SAFE() _clean(); _upcast()->_xor(rhs); _dirty(); }									//dirty
@@ -1287,10 +1270,10 @@ struct bigmod_t : biguint_t<_S> {
 	MATHCALL inline void operator+=( const int rhs ) 										{ SAFE() _upcast()->_add(rhs); _dirty(); }												//dirty
 	MATHCALL inline void operator-=( const int rhs ) 										{ SAFE() _upcast()->_sub(rhs); _dirty(); }												//dirty
 	MATHCALL inline void operator*=( const int rhs ) 										{ SAFE() _upcast()->_mul(rhs); _doclean(); }											//reduce now
-	MATHCALL inline void operator/=( const int rhs ) 	 									{ SAFE() bigmod_t<S> _rhs(rhs,m_modptr); this[0]*=_rhs._inverse(); }					//multiply reduces
+	MATHCALL inline void operator/=( const int rhs ) 	 									{ SAFE() bigmod_t<S> _rhs(rhs,m_modptr[0]); this[0]*=_rhs._inverse(); }					//multiply reduces
 	MATHCALL inline void operator%=( const int rhs ) 										{ SAFE() _clean(); _upcast()->_mod(rhs); }												//clean - cannot expand number
-	MATHCALL inline void operator<<=( const int rhs ) 										{ SAFE() bigmod_t<S> _rhs(2,m_modptr); this[0]*=_rhs._pow(rhs); }						//multiply reduces
-	MATHCALL inline void operator>>=( const int rhs ) 										{ SAFE() bigmod_t<S> _rhs(2,m_modptr); this[0]*=_rhs._inverse()._pow(rhs); }			//multiply reduces
+	MATHCALL inline void operator<<=( const int rhs ) 										{ SAFE() bigmod_t<S> _rhs(2,m_modptr[0]); this[0]*=_rhs._pow(rhs); }					//multiply reduces
+	MATHCALL inline void operator>>=( const int rhs ) 										{ SAFE() bigmod_t<S> _rhs(2,m_modptr[0]); this[0]*=_rhs._inverse()._pow(rhs); }			//multiply reduces
 	MATHCALL inline void operator&=( const int rhs ) 										{ SAFE() _clean(); _upcast()->_and(rhs); }												//clean - cannot expand number
 	MATHCALL inline void operator|=( const int rhs ) 										{ SAFE() _clean(); _upcast()->_or(rhs);  _dirty(); }									//dirty
 	MATHCALL inline void operator^=( const int rhs ) 										{ SAFE() _clean(); _upcast()->_xor(rhs); _dirty(); }									//dirty
@@ -1304,15 +1287,15 @@ struct bigmod_t : biguint_t<_S> {
 	MATHCALL inline explicit operator 		unsigned int	() 		 				const	{ SAFE() _clean(); return (unsigned int)(_upcast_const()[0]); 	}
 	MATHCALL inline explicit operator 		int				() 				 		const	{ SAFE() _clean(); return (int)(_upcast_const()[0]); 			}
 	MATHCALL inline explicit operator const char*			()						const	{ SAFE() _clean(); return (const char*)(_upcast_const()[0]); 	}
-	//operator const return of mpz_t is to prevent resolution ambiguity introduced by non-const
+	//operator const return of mpz_t is to prevent resolution ambiguity caused if non-const
 
 	//
 	// additional modular specific routines
 	//
 
-		MATHCALL inline bigmod_t<S>& _inverse() 											{ SAFE() mpz_invert(  this->b.m_vtmp[0], this->b.m_v[0], 		  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
+		MATHCALL inline bigmod_t<S>& _inverse() 											{ SAFE() mpz_invert(  this->b.m_vtmp[0], this->b.m_v[0], 		 m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
 		MATHCALL inline bigmod_t<S>& _pow( const mpz_t *rhs )								{ SAFE() mpz_powm(    this->b.m_vtmp[0], this->b.m_v[0], rhs[0], m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
-		MATHCALL inline bigmod_t<S>& _pow( int rhs )										{ SAFE() mpz_powm_ui( this->b.m_vtmp[0], this->b.m_v[0], rhs, 	  m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
+		MATHCALL inline bigmod_t<S>& _pow( int rhs )										{ SAFE() mpz_powm_ui( this->b.m_vtmp[0], this->b.m_v[0], rhs, 	 m_modptr->m_v[0] ); this->b.swap(); _markclean(); return(*this); }
 
 	MATHCALL inline bigmod_t<S> inverse() 											const	{ SAFE() bigmod_t<S> _rhs = this[0]; return(_rhs._inverse()); }
 	MATHCALL inline bigmod_t<S> pow( const mpz_t *rhs )								const	{ SAFE() bigmod_t<S> _rhs = this[0]; return(_rhs._pow(rhs));  }
@@ -1323,27 +1306,50 @@ struct bigmod_t : biguint_t<_S> {
 	MATHCALL inline bankentry_t&	getmodentry() 									const 	{ SAFE() return(m_modptr[0]); }
 	MATHCALL inline mpz_t*			getmod() 										const 	{ SAFE() return(m_modptr->raw()); }
 
-	//chinese remainder optimized for big numbers - avoids big multiplies and big modulus reductions
-	//	this form may favor r/wordsize > sz
-	MATHCALL static biguint_t<S> crt_scratch( bigmod_t *v, int sz, bigmod_t *s1, bigmod_t *s2 ) {
-		int x, y;
-		bigmod_t delta;
-		biguint_t<S> r(v[0]), scale(1);
-		for(x=1;x<sz;x++) {
-			s1[x] = bigmod_t( v[0],			 	  v[x].getmodentry() );		//set all moduli to value in first mod
-			s2[x] = bigmod_t( v[0].getmodentry(), v[x].getmodentry() );		//set all multipliers for all moduli to first mod
-		}
-		for(x=1;x<sz;x++) {
-			delta=(v[x]-s1[x])/s2[x];	//calculate steps to align to answer in field mod[x]
-			for(y=x+1;y<sz;y++) {
-				s1[y]+=s2[y]*delta;		//update answers in remaining mods - s2 on lefthand to prefer s2 modulus
-				s2[y]*=v[x].getmod();	//update multipliers in remaining mods
+	//nested chinese remainder theorem solver structure to encourage/simplify optimized memory usage
+	template <size_t SR, int sz>
+	struct crtsolver {
+
+		static_assert(S>0,"Modular CRT should not use a base type of a power of two.");
+
+		//internal memory
+		bigmod_t<S> m_s1[sz], m_s2[sz];
+
+		//chinese remainder optimized for big numbers - avoids big multiplies and big modulus reductions
+		MATHCALL biguint_t<SR> crt1( const bigmod_t<S> *v ) {
+			int x, y;
+			bigmod_t<S> delta;
+			biguint_t<SR> r(v[0]), scale(1);
+			for(x=1;x<sz;x++) {
+				m_s1[x] = bigmod_t<S>( v[0],			 	  v[x].getmodentry() );		//set all moduli to value in first mod
+				m_s2[x] = bigmod_t<S>( v[0].getmodentry(), v[x].getmodentry() );		//set all multipliers for all moduli to first mod
 			}
-			scale*=v[x-1].getmod();		//update global multiplier, lags behind to prevent unnecessary tail multiply
-			r+=scale*delta;				//update the return answer we are calculating - scale on lefthand for biguint result
+			for(x=1;x<sz;x++) {
+				delta=(v[x]-m_s1[x])/m_s2[x];	//calculate steps to align to answer in field mod[x]
+				for(y=x+1;y<sz;y++) {
+					m_s1[y]+=m_s2[y]*delta;		//update answers in remaining mods - s2 on lefthand to prefer s2 modulus
+					m_s2[y]*=v[x].getmod();		//update multipliers in remaining mods
+				}
+				scale*=v[x-1].getmod();			//update global multiplier, lags behind to prevent unnecessary tail multiply
+				r+=scale*delta;					//update the return answer we are calculating - scale on lefthand for biguint result
+			}
+			return r;
 		}
-		return r;
-	}
+
+		//chinese remainder - more direct but larger calculations
+		MATHCALL biguint_t<SR> crt2( const bigmod_t<S> *v ) {
+			int x;
+			bigmod_t<S> delta;
+			biguint_t<SR> r(v[0]), scale(1);
+			for(x=1;x<sz;x++) {
+				scale*=v[x-1].getmod();			//update global multiplier, lags behind to prevent unnecessary tail multiply
+				delta=(v[x]-r)/scale;			//calculate steps to align to answer in field mod[x]
+				r+=scale*delta;					//update the return answer we are calculating - scale on lefthand for biguint result
+			}
+			return r;
+		}		
+	};
+
 };
 
 template <ssize_t S>
