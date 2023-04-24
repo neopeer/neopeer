@@ -168,16 +168,24 @@ static_assert((1<<_bigmath_compile::log2(BIGMATHALIGNMALLOC))==BIGMATHALIGNMALLO
 
 namespace _bigmath_gmp_hacks {
 #ifdef BIGMATHGMPHACKSDISABLE
-	MATHCALL inline void mpz_realloc ( mpz_ptr ptr, const mp_bitcnt_t bits, _UNUSED_ const int limbs ) 													{ ::mpz_realloc2(ptr,bits); }
-	MATHCALL inline void mpz_limbs_limit ( _UNUSED_ mpz_ptr ptr, _UNUSED_ const int maxlimbs, _UNUSED_ const mpz_ptr modulus ) 							{}
+	MATHCALL inline void mpz_realloc ( mpz_ptr ptr, const mp_bitcnt_t bits, _UNUSED_ const int limbs ) { 
+		::mpz_realloc2(ptr,bits);
+	}
+	MATHCALL inline void mpz_limbs_limit ( _UNUSED_ mpz_ptr ptr, _UNUSED_ const int maxlimbs, _UNUSED_ const mpz_ptr modulus ) 	{}
+	MATHCALL inline void prefetch( void *addr )	{}
 #else
-	MATHCALL inline void mpz_realloc ( mpz_ptr ptr, _UNUSED_ const mp_bitcnt_t bits, _UNUSED_ const int limbs ) { ptr->_mp_size = 0; } //ptr->_mp_alloc = limbs;
+	MATHCALL inline void mpz_realloc ( mpz_ptr ptr, _UNUSED_ const mp_bitcnt_t bits, _UNUSED_ const int limbs ) { 
+		ptr->_mp_size = 0; 
+	} //ptr->_mp_alloc = limbs;
 	MATHCALL inline void mpz_limbs_limit ( mpz_ptr ptr, const int maxlimbs, const mpz_ptr modulus ) {
 		if(ptr->_mp_size<0) {
 			ptr->_mp_size = ptr->_mp_size > -maxlimbs ? ptr->_mp_size : -maxlimbs;
 			mpz_add( ptr, ptr, modulus );
 		}
 		else ptr->_mp_size = ptr->_mp_size < maxlimbs ? ptr->_mp_size : maxlimbs;
+	}
+	MATHCALL inline void prefetch( _UNUSED_ mpz_ptr addr )	{
+		__builtin_prefetch( addr->_mp_d, 1, 3 ); //invoke with caution to performance
 	}
 #endif
 }
@@ -737,6 +745,7 @@ struct biguint_t {
 		MATHCALL inline static void _cbinit(mpz_t *v, const size_t bits, _UNUSED_ const int limbs) 	 			{ mpz_init2(v[0],bits);    }
 		MATHCALL inline static void _cbdeinit(mpz_t *v, _UNUSED_ const size_t bits, _UNUSED_ const int limbs) 	{ mpz_clear(v[0]); 		   }
 		MATHCALL inline static void _cbrealloc(mpz_t *v, const size_t bits, const int limbs) 					{ _bigmath_gmp_hacks::mpz_realloc(v[0],bits,limbs); }
+		MATHCALL inline static void _prefetch(mpz_t *v) 														{ _bigmath_gmp_hacks::prefetch(v[0]); }
 
 	//user routines
 	#define make(e,v) { e=mathbankaccess_t<mpz_t,S,biguint_t<S>>::bank_t::allocnode(); v=e->m_v; }
@@ -1012,6 +1021,11 @@ struct bigfrac_t {
 		MATHCALL inline static void _cbrealloc(mpq_t *v, const size_t bits, const int limbs) {
 			_bigmath_gmp_hacks::mpz_realloc(mpq_numref(v[0]),bits,limbs); 
 			_bigmath_gmp_hacks::mpz_realloc(mpq_denref(v[0]),bits,limbs);
+		}
+
+		MATHCALL inline static void _prefetch(mpq_t *v) { 
+			_bigmath_gmp_hacks::prefetch(mpq_numref(v[0]));
+			_bigmath_gmp_hacks::prefetch(mpq_denref(v[0]));
 		}
 
 	//user routines
