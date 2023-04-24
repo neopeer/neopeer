@@ -81,7 +81,7 @@ extern "C" {
 
 						 //optimization for L1 CPU caches without compromising on bank sizes, measured in bits 						 
 #ifndef BIGMATHCACHESIZE //- beware this is PER instantiated type, actual cache size is rounded up with hard floor
-#define BIGMATHCACHESIZE (16*1024*8)
+#define BIGMATHCACHESIZE (8*1024*8)
 #endif
 
 #ifndef BIGMATHMODSCALE	//can be lowered below the max memory scaling if there is a computational advantage to it
